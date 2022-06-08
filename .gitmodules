@@ -1,16 +1,3 @@
-[submodule "vendor/cairo-verifier"]
-	path = vendor/cairo-verifier
-	url = https://github.com/patrickbiel01/Cairo_Verifier
-[submodule "prover/giza"]
-	path = prover/giza
-	url = https://github.com/maxgillett/giza
-[submodule "prover/winterfell"]
-    path = prover/giza
-    url = https://github.com/maxgillett/winterfell
-	branch = custom_evaluation_frame
-[submodule "vendor/cairo-lang"]
-	path = vendor/cairo-lang
-	url = https://github.com/liamzebedee/cairo-lang
-[submodule "execution/evmer/sputnikvm"]
-	path = execution/evmer/sputnikvm
+[submodule "sputnikvm"]
+	path = sputnikvm
 	url = https://github.com/liamzebedee/sputnik-evm
