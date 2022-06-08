@@ -1,10 +1,11 @@
 
 
+ - [ ] Update data model in SQLite to use sequencer timestamp as key.
  - [ ] return the new contract address
  - [ ] insert logs into db
  - [ ] add endpoint for fetching account nonce and balance
  - [ ] add backing implementation which uses a google cloud sqlite db
-
+ - [ ] Deploy entire thing to Google Cloud.
 
 
 Roadmap:

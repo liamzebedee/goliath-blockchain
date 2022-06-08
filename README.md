@@ -1,18 +1,13 @@
 goliath
 =======
 
-The Goliath blockchain is an Ethereum-compatible blockchain with a giant capacity for storage.
+The Goliath blockchain is an Ethereum L2 with a **giant capacity**.
+
+For **devs**, it means you'll never need another chain. No bridges, no new languages, just the same old EVM with **massively cheaper storage**. 
 
 ## Roadmap.
 
- - [x] Implement custom EVM with storage backend.
- - [x] Design scheduler-executer.
- - [ ] Basic sequencer.
- - [ ] Schedule txs from sequencer for execution.
- - [ ] Update data model in SQLite to use sequencer timestamp as key.
- - [ ] Test/implement Ethereum RPC node. Deploy Lens protocol as test case.
- - [ ] Deploy entire thing to Google Cloud.
- - [ ] Design an economics model - payment for compute/storage (gas).
+See [ROADMAP.md](./ROADMAP.md).
 
 ## Usage.
 
