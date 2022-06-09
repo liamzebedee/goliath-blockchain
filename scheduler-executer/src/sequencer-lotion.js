@@ -5,17 +5,26 @@ const range = (start, n) => Array(n).fill(start).map((x, y) => x + y)
 async function listenForTransactions(onTxs) {
     const lotion = await LotionConnect(process.env.GCI)
     const lightClient = lotion.lightClient
+    console.log(lightClient)
     
     // State.
-    // TODO: for this proto, the executer does not look at past block history for transactions.
-    let lastTxCount = await lotion.state.txCount
+    let totalTxs = await lotion.state.txCount
+
+    return
+
     // TODO: handle when we timeout from the sequencer.
 
     lightClient.on('update', async (header, commit, validators) => {
-        const currentCount = await lotion.state.txCount
-        console.log(`block time=${header.time} height=${header.height} hash=${commit.block_id.hash} txCount=${currentCount}`)
+        const hasTransactions = parseInt(header.num_txs) > 0
 
-        if (lastTxCount < currentCount) {
+        let currentCount = totalTxs 
+        if (hasTransactions) {
+            currentCount = await lotion.state.txCount
+        }
+        
+        console.log(`block time=${header.time} height=${header.height} hash=${commit.block_id.hash} totalTxs=${currentCount}`)
+
+        if (hasTransactions) {
             console.log(`Fetching txs...`)
 
             const num = currentCount - lastTxCount
@@ -29,9 +38,7 @@ async function listenForTransactions(onTxs) {
         }
 
         // Get the latest batch of transactions and execute them.
-        // if (parseInt(header.num_txs) > 0) {
         //     // Process block.
-
         //     try {
         //         // let res = await lightClient.rpc.block({
         //         //     height: header.height
@@ -63,19 +70,6 @@ async function run() {
         await executeTransaction(tx)
     }
 }
-
-/*
-
-{
-  height: '252561',
-  results: {
-    DeliverTx: [ null ],
-    EndBlock: { validator_updates: [Array] },
-    BeginBlock: {}
-  }
-}
-
-*/
 
 run().catch(ex => {
     throw ex; 
