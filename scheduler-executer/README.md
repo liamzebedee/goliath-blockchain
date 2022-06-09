@@ -1,7 +1,9 @@
 Scheduler-executer
 ==================
 
+## How does it work?
 
+This fetches every block from the Tendermint chain, queries the batch of sequenced transactions for that block, and then executes them.
 
 Pseudocode:
 

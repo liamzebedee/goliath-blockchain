@@ -1,13 +1,5 @@
 
 
- - [ ] Update data model in SQLite to use sequencer timestamp as key.
- - [ ] return the new contract address
- - [ ] insert logs into db
- - [ ] add endpoint for fetching account nonce and balance
- - [ ] add backing implementation which uses a google cloud sqlite db
- - [ ] Deploy entire thing to Google Cloud.
-
-
 Roadmap:
 
  * **Compression**. Google uses an extremely fast compression algo called Snappy throughout its infra - Bigtable databases, RPC calls, etc. [Calldata compression](https://github.com/ethereum-optimism/optimistic-specs/issues/10) is a well-applied in the Optimism rollup. 

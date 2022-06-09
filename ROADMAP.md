@@ -18,6 +18,19 @@ For the first milestone, we will be pushing out the first testnet release, calle
  - Centralized permissioned sequencer (a la Starkware, Optimism, etc.).
  - No gas or fee model (yet).
 
+ - [x] implement stateless EVM - using SputnikVM
+ - [x] connect EVM storage to some persistent database backend - SQL
+ - [x] deploy ethereum contract to EVM **manually** (Hardhat's `Greeter.sol`)
+ - [x] deploy contract using `seth` or `cast`
+ - [x] implement basic Ethereum JSON-RPC node
+ - [ ] implement a basic tendermint sequencer - submit tx, set time, 2 node BFT network.
+ - [ ] implement the scheduler-executer - read historical + current txs from scheduler, execute them and write to db.
+ - [ ] Update data model in SQLite to use sequencer timestamp as key.
+ - [ ] return the new contract address
+ - [ ] insert logs into db
+ - [ ] add endpoint for fetching account nonce and balance
+ - [ ] add backing implementation which uses a google cloud sqlite db
+ - [ ] Deploy entire thing to Google Cloud.
 
 ### (future)
 
