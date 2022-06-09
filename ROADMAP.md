@@ -18,19 +18,24 @@ For the first milestone, we will be pushing out the first testnet release, calle
  - Centralized permissioned sequencer (a la Starkware, Optimism, etc.).
  - No gas or fee model (yet).
 
- - [x] implement stateless EVM - using SputnikVM
- - [x] connect EVM storage to some persistent database backend - SQL
- - [x] deploy ethereum contract to EVM **manually** (Hardhat's `Greeter.sol`)
- - [x] deploy contract using `seth` or `cast`
- - [x] implement basic Ethereum JSON-RPC node
- - [ ] implement a basic tendermint sequencer - submit tx, set time, 2 node BFT network.
- - [ ] implement the scheduler-executer - read historical + current txs from scheduler, execute them and write to db.
- - [ ] Update data model in SQLite to use sequencer timestamp as key.
- - [ ] return the new contract address
- - [ ] insert logs into db
- - [ ] add endpoint for fetching account nonce and balance
- - [ ] add backing implementation which uses a google cloud sqlite db
+ - [x] executer: implement stateless EVM - using SputnikVM
+ - [x] executer: connect EVM storage to some persistent database backend - SQL
+ - [x] executer: deploy ethereum contract to EVM **manually** (Hardhat's `Greeter.sol`)
+ - [x] rpc: deploy contract using `seth` or `cast`
+ - [x] rpc: implement basic Ethereum JSON-RPC node
+ - [ ] sequencer: implement a basic tendermint sequencer - submit tx, set time, 2 node BFT network.
+ - [ ] scheduler/executer: implement basic scheduler - read historical + current txs from scheduler, execute them and write to db.
+ - [ ] scheduler: implement comms protocol between executer and scheduler - pass receipt.
+ - [ ] executer: return the new contract address
+ - [ ] executer: insert logs into db
+ - [ ] rpc: modify eth_sendTransaction endpoint to send a valid receipt with contract address + logs.
+ - [ ] executer: update SQL data model to use sequencer timestamp as key.
+ - [ ] rpc/executer: add endpoint for fetching account nonce and balance
  - [ ] Deploy entire thing to Google Cloud.
+    - [ ] some devops work here.
+    - [ ] google cloud sqlite db
+    - [ ] rate limiting for sequencer
+ - [ ] Load test
 
 ### (future)
 
