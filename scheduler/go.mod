@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200102211924-4bcbc698314f // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/TwiN/go-color v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.0 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
