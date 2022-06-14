@@ -144,7 +144,6 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 		return 0, err
 	}
 	
-
 	// Then append to the log.
 	// Save to DB.
 	res, err := s.db.Exec(
@@ -168,7 +167,7 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 
 // Returns the transactions between index `from` and `to`.
 func (s *SequencerService) Get(from, to uint64) (int, error) {
-
+	
 	return 1, nil
 }
 
@@ -182,7 +181,6 @@ type SequencerInfo struct {
 // - total number of sequenced txs.
 // - latest received tx time.
 func (s *SequencerService) Info() (SequencerInfo, error) {
-	
 	// info := make(map[string]interface{})
 	// info["total"] = 2
 	// info["latest"] = 21

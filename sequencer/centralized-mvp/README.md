@@ -1,10 +1,14 @@
-This is a centralized sequencer that can scale to a large number of transactions per second.
+
+
+This is a permissioned sequencer that can scale to a large number of transactions per second.
+
+
 
 ## RPC methods.
 
-goliath_getSequence
-goliath_sequence
-
+sequencer_sequence
+sequencer_get
+sequencer_info
 
 ## Usage.
 
