@@ -2,6 +2,9 @@
 
 Local development guide.
 
+## Design overview.
+
+
 
 ## Chain setup.
 
