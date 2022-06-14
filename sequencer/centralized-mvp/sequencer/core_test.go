@@ -1,19 +1,16 @@
 package sequencer
 
 import (
-	"testing"
-	"database/sql"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
-	"github.com/stretchr/testify/assert"
-	"time"
-
-	"encoding/json"
-	// "strconv"
-	"fmt"
 	"crypto/ecdsa"
+	"database/sql"
+	"fmt"
+	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockSequencer() (*sequencer.SequencerService, error) {
@@ -26,63 +23,16 @@ func getMockSequencer() (*sequencer.SequencerService, error) {
 	return seq, nil
 }
 
-type Signer interface {
-	Sign(digestHash []byte) (sig []byte, err error)
-}
 
 
-type SequenceMessage struct {
-	Type string `json:"type"`
-	Data string `json:"data"`
-	Sig string `json:"sig"`
-	Nonce string `json:"nonce"`
-	Expires []interface{} `json:"expires"`
-}
-
-func (msg SequenceMessage) ToJSON() (string) {
-	// msg := make(map[string]interface{})
-	// msg["type"] = "goliath/0.0.0/signed-tx"
-	// msg["data"] = txData
-	// msg["sig"] = ""
-	// msg["nonce"] = "1"
-	msg_encoded, err := json.Marshal(msg)
-	
-	if err != nil {
-		panic(err)
-	}
-	return string(msg_encoded)
-}
-
-// Returns a new SequenceMessage with a signature.
-func (msg SequenceMessage) Signed(signer Signer) (SequenceMessage) {
-	msg_signed := msg
-
-	// Encode the message, hash it, and sign the hash.
-	msg_encoded, err := json.Marshal(msg)
-	if err != nil {
-		panic(err)
-	}
-
-	data := []byte(msg_encoded)
-	hash := crypto.Keccak256Hash(data)
-	fmt.Println(hash.Hex())
-	signature, err := signer.Sign(hash.Bytes())
-	if err != nil {
-		panic(err)
-	}
-	msg_signed.Sig = hexutil.Encode(signature)
-
-	return msg_signed
-}
-
-func constructSequenceMessage(txData string, expiresIn time.Duration) (SequenceMessage) {
-	msg := SequenceMessage{}
+func constructSequenceMessage(txData string, expiresIn time.Duration) (sequencer.SequenceMessage) {
+	msg := sequencer.SequenceMessage{}
 	msg.Type = "goliath/0.0.0/signed-tx"
 	msg.Data = txData
 	msg.Sig = ""
 	msg.Nonce = "" // TODO
-	expiry_conditions := make([]interface{}, 1)
-	expiry_conditions[0] = []interface{}{"unix", time.Now().Add(expiresIn).UnixMilli(),}
+	expiry_conditions := make([][]interface{}, 1)
+	expiry_conditions[0] = []interface{}{"unix", time.Now().Add(expiresIn).UnixMilli(), }
 	msg.Expires = expiry_conditions
 	return msg
 }
@@ -117,21 +67,39 @@ func TestSequence(t *testing.T) {
 	// 
 	
 	// 1. Message is malformed.
-	msg := SequenceMessage{}
+	msg := sequencer.SequenceMessage{}
+	msg.Type = sequencer.SEQUENCE_MESSAGE_TYPE
 	seqno, err := seq.Sequence(msg.ToJSON())
 	assert.EqualError(t, err, "message is malformed")
 
 	// 2. Invalid signature.
+	// pubkey 0x0466724a07b5fc7937b0a5ef42d9d25b496958426e2d36c69e44e7e33c0b1f835e29127894ac9183a8f9353e78bd2a0b2667c23ae1ec88b4e6f9ba18b2854465aa
 	signer := NewEthereumECDSASigner("3977045d27df7e401ecf1596fd3ae86b59f666944f81ba8dbf547c2269902f6b")
 	txData := "c4a6abb1cc341e7b796bdc0fb11c50a12d4e998cc4e8e3cb44badf185a8e00f7"
 	
+	// a. Empty signature data.
 	msg = constructSequenceMessage(txData, 5 * time.Second)
+	msg.Sig = "0x1234"
+	seqno, err = seq.Sequence(msg.ToJSON())
+	assert.EqualError(t, err, "invalid signature")
+
+	// b. Signature for a different message.
+	msg = constructSequenceMessage(txData, 5 * time.Second)
+	badData, _ := hexutil.Decode("0xaaaa")
+	if badSig, err := signer.Sign(crypto.Keccak256Hash(badData).Bytes()); err != nil {
+		panic(err)
+	} else {
+		fmt.Println("fake sighash:", hexutil.Encode(crypto.Keccak256Hash(badData).Bytes()))
+		msg.Sig = hexutil.Encode(badSig)
+		fmt.Println("fake sig:", msg.Sig)
+	}
 	seqno, err = seq.Sequence(msg.ToJSON())
 	assert.EqualError(t, err, "invalid signature")
 
 	// 3. Message is expired.
-	msg = constructSequenceMessage(txData, 0)
+	msg = constructSequenceMessage(txData, 1)
 	msg = msg.Signed(signer)
+	msg.Expires[0] = []interface{}{"unix", time.Now().Add(time.Duration(-1) * time.Minute).UnixMilli(), }
 	seqno, err = seq.Sequence(msg.ToJSON())
 	assert.EqualError(t, err, "message expired")
 
