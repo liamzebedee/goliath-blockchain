@@ -1,6 +1,7 @@
 package sequencer
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -72,6 +73,10 @@ func (s *SequencerService) Sequence(msgData string) (int, error) {
 		return 0, fmt.Errorf("message is malformed")
 	}
 
+	if len(msg.From) == 0 || msg.From == "0x" {
+		return 0, fmt.Errorf("message is malformed")
+	}
+
 	// Verify signature.
 	digestHash := msg.SigHash()
 	fmt.Println("sighash: ", hexutil.Encode(digestHash))
@@ -90,10 +95,25 @@ func (s *SequencerService) Sequence(msgData string) (int, error) {
 		fmt.Println("error while recovering pubkey:", err.Error())
 		return 0, fmt.Errorf("invalid signature")
 	}
+	
+	fromField, err := hexutil.Decode(msg.From)
+	if err != nil {
+		panic(err)
+	}
+
+	fromPubkey, err := crypto.DecompressPubkey(fromField)
+	if err != nil {
+		panic(err)
+	}
+
+	if !bytes.Equal(pubkey, crypto.FromECDSAPub(fromPubkey)) {
+		fmt.Println("message signature is for different pubkey:")
+		return 0, fmt.Errorf("invalid signature")
+	}
 
 	// remove recovery id (last byte) from signature.
-	isValidSig := crypto.VerifySignature(pubkey, digestHash, signature[:len(signature)-1])
-	if !isValidSig {
+	signatureValid := crypto.VerifySignature(pubkey, digestHash, signature[:len(signature)-1])
+	if !signatureValid {
 		return 0, fmt.Errorf("invalid signature")
 	}
 	

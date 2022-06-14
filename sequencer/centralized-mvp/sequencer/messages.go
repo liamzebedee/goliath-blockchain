@@ -1,7 +1,9 @@
 package sequencer
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
+
 	// "strconv"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -17,6 +19,7 @@ const SEQUENCE_MESSAGE_TYPE = "goliath/0.0.0/signed-tx"
 
 type SequenceMessage struct {
 	Type string `json:"type"`
+	From string `json:"from"`
 	Data string `json:"data"`
 	Sig string `json:"sig"`
 	Nonce string `json:"nonce"`
@@ -45,6 +48,11 @@ func (msg SequenceMessage) SigHash() ([]byte) {
 	hash := crypto.Keccak256Hash(data)
 	
 	return hash.Bytes()
+}
+
+func (msg SequenceMessage) SetFrom(pubkey *ecdsa.PublicKey) (SequenceMessage) {
+	msg.From = hexutil.Encode(crypto.CompressPubkey(pubkey))
+	return msg
 }
 
 // Returns a new SequenceMessage with a signature.
