@@ -18,6 +18,11 @@ import (
 type SequencerService struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
+
+
+	Total int64
+	// milliseconds.
+	LastSequenceTime int64
 }
 
 func GetDefaultDatabase() (*sql.DB) {
@@ -32,13 +37,17 @@ func GetDefaultDatabase() (*sql.DB) {
 }
 
 func NewSequencerService(db *sql.DB) (*SequencerService) {
-	db.Exec(`
+	_, err := db.Exec(`
 	CREATE TABLE sequence (
-		index INTEGER PRIMARY KEY AUTOINCREMENT, 
+		sequence INTEGER PRIMARY KEY AUTOINCREMENT, 
 		msg BLOB,
 		txid BLOB
 	);
 	`)
+
+	if err != nil {
+		panic(err)
+	}
 
 	return &SequencerService{
 		// privateKey *ecdsa.PrivateKey
@@ -50,15 +59,8 @@ func NewSequencerService(db *sql.DB) (*SequencerService) {
 
 
 // Assigns a sequence number for the transaction.
-func (s *SequencerService) Sequence(msgData string) (int, error) {
+func (s *SequencerService) Sequence(msgData string) (int64, error) {
 	var msg SequenceMessage
-
-	// fmt.Println(msgData)
-
-	// data, err := hexutil.Decode("0x" + msgData)
-	// if err != nil {
-	// 	return 0, err
-	// }
 
 	err := json.Unmarshal([]byte(msgData), &msg)
 	if err != nil {
@@ -116,7 +118,7 @@ func (s *SequencerService) Sequence(msgData string) (int, error) {
 	if !signatureValid {
 		return 0, fmt.Errorf("invalid signature")
 	}
-	
+
 	// Check expiry conditions.
 	for _, expiry_cond := range msg.Expires {
 		expiry_check_type := expiry_cond[0]
@@ -141,13 +143,27 @@ func (s *SequencerService) Sequence(msgData string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	
 
-	// Decode the sequence message.
-	// Verify the signature according to the Ethereum VM installation.
 	// Then append to the log.
-	// fmt.Println(msg)
 	// Save to DB.
-	return 1, nil
+	res, err := s.db.Exec(
+		"INSERT INTO sequence values (?, ?, ?)",
+		nil,
+		msgData,
+		nil,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("error writing tx to db: ", err.Error())
+	}
+
+	lastId, err := res.LastInsertId()
+	if err != nil {
+		// TODO
+		panic(err)
+	}
+
+	return lastId, nil
 }
 
 // Returns the transactions between index `from` and `to`.

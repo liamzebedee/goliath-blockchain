@@ -13,7 +13,8 @@ import (
 )
 
 func getMockSequencer() (*sequencer.SequencerService, error) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	// db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", "data.sqlite")
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +55,7 @@ func (s *EthereumECDSASigner) Sign(digestHash []byte) (sig []byte, err error) {
 }
 
 func (s *EthereumECDSASigner) GetPubkey() (*ecdsa.PublicKey) {
+	// TODO proabbly not the best way to get the pubkey.
 	badData, _ := hexutil.Decode("0xaaaa")
 	digest := crypto.Keccak256Hash(badData).Bytes()
 	sig, err := s.Sign(digest)
@@ -124,7 +126,7 @@ func TestSequence(t *testing.T) {
 		t.Error(err)
 	}
 
-	assert.Equal(t, seqno, 1, "First tx sequenced should have sequence number of 0")
+	assert.Equal(t, seqno, 0, "First tx sequenced should have sequence number of 0")
 }
 
 // func TestGet(t *testing.T) {
