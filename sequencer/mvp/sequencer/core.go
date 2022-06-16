@@ -15,10 +15,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+type Block struct {
+	data []byte
+}
+
 type SequencerService struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
 
+	BlockChannel chan Block
 
 	Total int64
 	// milliseconds.
@@ -52,11 +57,19 @@ func NewSequencerService(db *sql.DB) (*SequencerService) {
 	return &SequencerService{
 		// privateKey *ecdsa.PrivateKey
 		// privateKey: privateKey,
+		BlockChannel: make(chan Block),
 		db: db,
 	}
 }
 
-
+// func (s *SequencerService) disseminateBlocks() {
+// 	for {
+// 		block := <-s.blockChannel
+// 		// select {
+// 		// case :
+// 		// }
+// 	}
+// }
 
 // Assigns a sequence number for the transaction.
 func (s *SequencerService) Sequence(msgData string) (int64, error) {
@@ -100,12 +113,12 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 	
 	fromField, err := hexutil.Decode(msg.From)
 	if err != nil {
-		panic(err)
+		return 0, fmt.Errorf("message is malformed")
 	}
 
 	fromPubkey, err := crypto.DecompressPubkey(fromField)
 	if err != nil {
-		panic(err)
+		return 0, fmt.Errorf("message is malformed")
 	}
 
 	if !bytes.Equal(pubkey, crypto.FromECDSAPub(fromPubkey)) {
@@ -156,6 +169,11 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 		return 0, fmt.Errorf("error writing tx to db: ", err.Error())
 	}
 
+	newBlock := Block{
+		data: []byte{1,2,3,4},
+	}
+	s.BlockChannel <- newBlock
+
 	lastId, err := res.LastInsertId()
 	if err != nil {
 		// TODO
@@ -189,5 +207,6 @@ func (s *SequencerService) Info() (SequencerInfo, error) {
 		Total: 0,
 		LastSequenceTime: 0,
 	}
+	
 	return info, nil
 }

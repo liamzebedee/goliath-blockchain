@@ -13,8 +13,8 @@ import (
 )
 
 func getMockSequencer() (*sequencer.SequencerService, error) {
-	// db, err := sql.Open("sqlite3", ":memory:")
-	db, err := sql.Open("sqlite3", "data.sqlite")
+	db, err := sql.Open("sqlite3", ":memory:")
+	// db, err := sql.Open("sqlite3", "data.sqlite")
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,29 @@
+Sequencer.
+
+Purpose.
+Desired properties.
+
+Software architecture
+- core: manages the engine of sequencing transactions and blocks
+- transactions: describes transaction format, expiry details, etc.
+- modes: describes primary and replica modes of operation
+
+Network architecture:
+- one primary disseminates to a set of replicas via a pubsub channel
+- the replicas gossip blocks between each other
+
+
+How does it work? 
+user -> sequencer.sequence(tx) ->
+    validates tx
+    then publishes the new block to all downstream nodes
+    
+
+
+Tendermint:
+1. This is just an MVP. We want to use Narwhal eventually.
+2. Tendermint's model of BFT consensus will only hit 10k TPS. Our model is supposed to be much higher.
+3. + Tendermint already has protobuf message types, etc.
+4. - Tendermint doesn't use compression natively
+5. For the MVP, we can build a model that's a bit different to tendermint using on-chain smart contracts (without a token!)
+6. + Tendermint already has p2p sync and light clients.
