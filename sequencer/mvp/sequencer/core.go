@@ -27,7 +27,10 @@ type SequencerCore struct {
 
 func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	fmt.Println("migrating database")
-	_, err := db.Exec(`
+	
+	// TODO: handle migation errors
+	// panic: table sequence already exists
+	db.Exec(`
 	CREATE TABLE sequence (
 		num INTEGER PRIMARY KEY AUTOINCREMENT, 
 		msg BLOB,
@@ -36,9 +39,9 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	`)
 	fmt.Println("migration complete")
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	return &SequencerCore{
 		// privateKey *ecdsa.PrivateKey
@@ -51,15 +54,6 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 func (s *SequencerCore) Close() {
 	s.db.Close()
 }
-
-// func (s *SequencerService) disseminateBlocks() {
-// 	for {
-// 		block := <-s.blockChannel
-// 		// select {
-// 		// case :
-// 		// }
-// 	}
-// }
 
 func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	// current block = 5
@@ -74,7 +68,7 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 		return err
 	}
 
-	err = s.verifySequenceMessage(msg)
+	err = s.verifySequenceMessage(msg, false)
 	if err != nil {
 		return err
 	}
@@ -93,7 +87,7 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	return nil
 }
 
-func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage) (error) {
+func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage, checkUnixExpiry bool) (error) {
 	if msg.Type != SEQUENCE_MESSAGE_TYPE {
 		return fmt.Errorf("unhandled message type: %s", msg.Type)
 	}
@@ -150,7 +144,7 @@ func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage) (error) {
 	for _, expiry_cond := range msg.Expires {
 		expiry_check_type := expiry_cond[0]
 
-		if expiry_check_type == "unix" {
+		if expiry_check_type == "unix" && checkUnixExpiry {
 			expiry_time := expiry_cond[1].(float64)
 
 			if err != nil {
@@ -183,7 +177,7 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 		return 0, err
 	}
 
-	err = s.verifySequenceMessage(msg)
+	err = s.verifySequenceMessage(msg, true)
 	if err != nil {
 		return 0, err
 	}

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 type SequencerMode uint
@@ -82,8 +83,19 @@ func (n *SequencerNode) Start() {
 		})()
 	}
 
-	go n.P2P.Start()
-	go n.RPC.Start()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		go func() {
+			defer wg.Done()
+			n.P2P.Start()
+		}()
+		go func() {
+			defer wg.Done()
+			n.RPC.Start()
+		}()
+	}()
+	wg.Wait()
 }
 
 func (n *SequencerNode) Close() {

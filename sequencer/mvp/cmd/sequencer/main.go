@@ -16,7 +16,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const DEFAULT_PORT = "24444"
 const DB_PATH = "db.sqlite"
 
 func parsePrivateKey() *ecdsa.PrivateKey {
@@ -31,14 +30,21 @@ func parsePrivateKey() *ecdsa.PrivateKey {
 	return privateKey
 }
 
+func getDatabasePathWithOptions(filepath string) string {
+	return fmt.Sprintf("file:%s?cache=shared", filepath)
+}
+
 
 func main() {
 	// Arguments parsing.
-	port := flag.String("port", DEFAULT_PORT, "port to listen on")
+	rpcport := flag.String("rpcport", "24444", "RPC port to listen on")
+	p2pport := flag.String("p2pport", "24445", "P2P port to listen on")
 	mode_flag := flag.String("mode", "primary", "mode to operate in")
-	// peers := flag.String("peers", "", "peers to join the pubsub network on")
-	
+	peers := flag.String("peers", "", "peers to join the pubsub network on")
+	dbPath := flag.String("dbpath", DB_PATH, "path to the database")
 	// privateKey := parsePrivateKey()
+	privateKey := os.Getenv("PRIVATE_KEY")
+
     flag.Parse()
 
 	var mode sequencer.SequencerMode
@@ -51,6 +57,10 @@ func main() {
 		panic(fmt.Errorf("unknown sequencer mode: %s", *mode_flag))
 	}
 
+	if privateKey == "" && mode == sequencer.PrimaryMode {
+		panic("PRIVATE_KEY environment variable is empty!")
+	}
+
 	fmt.Println("Goliath Sequencer")
 	fmt.Println("Mode:", *mode_flag)
 
@@ -60,20 +70,20 @@ func main() {
 	// 	panic(fmt.Errorf("couldn't open database %s: %s", DB_PATH, err))
 	// }
 	node := sequencer.NewSequencerNode(
-		DB_PATH,
-		*port,
-		"24344",
+		getDatabasePathWithOptions(*dbPath),
+		*rpcport,
+		*p2pport,
 		mode,
-		"",
-		"",
+		privateKey,
+		*peers,
 	)
 
-	// Handle shutdowns.	
+	// Handle shutdowns.
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	go (func() {
 		<-ch
-		fmt.Println("Received signal, shutting down...")
+		fmt.Println("\nReceived kill signal, shutting down...")
 
 		// shut the node down
 		node.Close()
