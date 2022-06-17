@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"database/sql"
 	"time"
@@ -19,7 +18,7 @@ type Block struct {
 	data []byte
 }
 
-type SequencerService struct {
+type SequencerCore struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
 
@@ -30,36 +29,31 @@ type SequencerService struct {
 	LastSequenceTime int64
 }
 
-func GetDefaultDatabase() (*sql.DB) {
-	// Database.
-	db, err := sql.Open("sqlite3", "./data.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// TODO:
-	// defer db.Close()
-	return db
-}
-
-func NewSequencerService(db *sql.DB) (*SequencerService) {
+func NewSequencerCore(db *sql.DB) (*SequencerCore) {
+	fmt.Println("migrating database")
 	_, err := db.Exec(`
 	CREATE TABLE sequence (
-		sequence INTEGER PRIMARY KEY AUTOINCREMENT, 
+		num INTEGER PRIMARY KEY AUTOINCREMENT, 
 		msg BLOB,
 		txid BLOB
 	);
 	`)
+	fmt.Println("migration complete")
 
 	if err != nil {
 		panic(err)
 	}
 
-	return &SequencerService{
+	return &SequencerCore{
 		// privateKey *ecdsa.PrivateKey
 		// privateKey: privateKey,
 		BlockChannel: make(chan Block),
 		db: db,
 	}
+}
+
+func (s *SequencerCore) Close() {
+	s.db.Close()
 }
 
 // func (s *SequencerService) disseminateBlocks() {
@@ -72,7 +66,7 @@ func NewSequencerService(db *sql.DB) (*SequencerService) {
 // }
 
 // Assigns a sequence number for the transaction.
-func (s *SequencerService) Sequence(msgData string) (int64, error) {
+func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	var msg SequenceMessage
 
 	err := json.Unmarshal([]byte(msgData), &msg)
@@ -166,7 +160,7 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 		nil,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("error writing tx to db: ", err.Error())
+		return 0, fmt.Errorf("error writing tx to db: %s", err)
 	}
 
 	newBlock := Block{
@@ -184,8 +178,7 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 }
 
 // Returns the transactions between index `from` and `to`.
-func (s *SequencerService) Get(from, to uint64) (int, error) {
-	
+func (s *SequencerCore) Get(from, to uint64) (int, error) {
 	return 1, nil
 }
 
@@ -198,7 +191,7 @@ type SequencerInfo struct {
 // Get the sequencer info.
 // - total number of sequenced txs.
 // - latest received tx time.
-func (s *SequencerService) Info() (SequencerInfo, error) {
+func (s *SequencerCore) Info() (SequencerInfo, error) {
 	// info := make(map[string]interface{})
 	// info["total"] = 2
 	// info["latest"] = 21

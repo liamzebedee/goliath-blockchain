@@ -10,22 +10,35 @@ import (
 
 type RPCNode struct {
 	addr string
+	httpServer http.Server
 }
 
-func NewRPCNode(addr string, seq *SequencerService) (*RPCNode) {
-	// JSON-RPC server.
-	server := rpc.NewServer()
-	server.RegisterName("sequencer", seq)
 
-	http.HandleFunc("/", server.ServeHTTP)
+func NewRPCNode(addr string, seq *SequencerCore) (*RPCNode) {
+	// JSON-RPC server.
+	rpc := rpc.NewServer()
+	rpc.RegisterName("sequencer", seq)
+
+	// HTTP frontend.
+	serveMux := http.NewServeMux()
+	serveMux.HandleFunc("/", rpc.ServeHTTP)
+
+	httpServer := &http.Server{
+		Addr:           addr,
+		Handler:        serveMux,
+		// ReadTimeout:    10 * time.Second,
+		// WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
 
 	return &RPCNode{
 		addr: addr,
+		httpServer: *httpServer,
 	}
 }
 
 func (n *RPCNode) Start() {
 	// Start RPC server.
 	fmt.Println("RPC listening on http://" + n.addr)
-	log.Fatal(http.ListenAndServe(n.addr, nil))
+	log.Fatal(n.httpServer.ListenAndServe())
 }

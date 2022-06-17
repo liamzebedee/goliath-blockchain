@@ -13,6 +13,7 @@ import (
 
 type Signer interface {
 	Sign(digestHash []byte) (sig []byte, err error)
+	GetPubkey() (*ecdsa.PublicKey)
 }
 
 const SEQUENCE_MESSAGE_TYPE = "goliath/0.0.0/signed-tx"

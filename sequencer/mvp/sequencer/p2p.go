@@ -20,11 +20,10 @@ func NewP2PNode(multiaddr string) (*P2PNode, error) {
 	host, err := libp2p.New(
 		libp2p.ListenAddrStrings(multiaddr),
 	)
+
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("P2P listening on %s\n", multiaddr)
 
 	ctx := context.Background()
 
@@ -48,6 +47,14 @@ func NewP2PNode(multiaddr string) (*P2PNode, error) {
 	}
 
 	return node, nil
+}
+
+func (n *P2PNode) Start() {
+	// err := n.host.Network().Listen()
+	fmt.Printf("P2P listening on %s\n", n.host.Addrs()[0])
+	// if err != nil {
+	// 	panic(fmt.Errorf("error listening on p2p: %s", err))
+	// }
 }
 
 func topicName(name string) string {
