@@ -1,28 +1,50 @@
 Sequencer.
 
-Purpose.
+Background.
+    A sequencer takes transactions and assigns each one a timestamp, thus creating a total order.
+    This order is generated separate to the execution of transactions, and thus is useful in building high-performance blockchains with decoupled modules.
+
+Overview.
+    This is a permissioned P2P transaction sequencer that can scale to a large number of transactions per second (20k+).
+
 Desired properties.
+    1. Must not require a token to use with the rest of Goliath.
+    2. Must sequence at least 20,000 TPS.
+    3. Must be Byzantine-Fault Tolerant.
+    4. Must be able to be permissioned (eg. only authorised accounts can submit txs, for POC).
 
 Software architecture
-- core: manages the engine of sequencing transactions and blocks
-- transactions: describes transaction format, expiry details, etc.
-- modes: describes primary and replica modes of operation
+    - core: manages the engine of sequencing transactions and blocks
+    - transactions: describes transaction format, expiry details, etc.
+    - modes: describes primary and replica modes of operation
 
-Network architecture:
-- one primary disseminates to a set of replicas via a pubsub channel
-- the replicas gossip blocks between each other
+Sequencer network:
+    The network is composed of one primary and many replicas.
+    The primary node is purely responsible for sequencing transactions. 
+    It processes each sequence tx, and produces a block for every transaction sequenced.
+    Primary disseminates new blocks to replicas via a P2P publish-subscribe channel.
+    Replicas verify all new blocks.
+
+RPC
+    The RPC endpoint is for use by users and applications.
+    Methods:
+        sequencer_append
+        sequencer_read
+        sequencer_info
+
+P2P
+    Nodes are discovered via a DHT (libp2p's rendezvous protocol)
+    A publish-subscribe channel for new blocks is setup using the [GossipSub protocol](https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/README.md)
 
 
-How does it work? 
-user -> sequencer.sequence(tx) ->
-    validates tx
-    then publishes the new block to all downstream nodes
-    
+## Design evaluation.
 
+### Why this over a Tendermint chain? 
 
 Tendermint:
 1. This is just an MVP. We want to use Narwhal eventually.
 2. Tendermint's model of BFT consensus will only hit 10k TPS. Our model is supposed to be much higher.
+3. - It's much more complex than we need for our needs.
 3. + Tendermint already has protobuf message types, etc.
 4. - Tendermint doesn't use compression natively
 5. For the MVP, we can build a model that's a bit different to tendermint using on-chain smart contracts (without a token!)
