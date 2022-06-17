@@ -3,16 +3,16 @@ package sequencer
 import (
 	"context"
 	"fmt"
-	"sync"
+
+	// "sync"
+	// discovery "github.com/libp2p/go-libp2p-discovery"
+	// dht "github.com/libp2p/go-libp2p-kad-dht"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pHost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 
 	"github.com/ipfs/go-log/v2"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -115,74 +115,74 @@ func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList)
 	return node, nil
 }
 
-func startDHT(host libp2pHost.Host, bootstrapPeers AddrList, rendezVousString string, peerDiscoveryNotifee PeerDiscoveryNotifee) {
-	// Start a DHT, for use in peer discovery. We can't just make a new DHT
-	// client because we want each peer to maintain its own local copy of the
-	// DHT, so that the bootstrapping node of the DHT can go down without
-	// inhibiting future peer discovery.
-	ctx := context.Background()
-	kademliaDHT, err := dht.New(ctx, host)
-	if err != nil {
-		panic(err)
-	}
+// func startDHT(host libp2pHost.Host, bootstrapPeers AddrList, rendezVousString string, peerDiscoveryNotifee PeerDiscoveryNotifee) {
+// 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
+// 	// client because we want each peer to maintain its own local copy of the
+// 	// DHT, so that the bootstrapping node of the DHT can go down without
+// 	// inhibiting future peer discovery.
+// 	ctx := context.Background()
+// 	kademliaDHT, err := dht.New(ctx, host)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	logger.Debug("Bootstrapping the DHT")
-	if err = kademliaDHT.Bootstrap(ctx); err != nil {
-		panic(err)
-	}
+// 	logger.Debug("Bootstrapping the DHT")
+// 	if err = kademliaDHT.Bootstrap(ctx); err != nil {
+// 		panic(err)
+// 	}
 
-	// Let's connect to the bootstrap nodes first. They will tell us about the
-	// other nodes in the network.
-	var wg sync.WaitGroup
-	for i, peerAddr := range bootstrapPeers {
-		logger.Debugf("connecting to bootstrap peer #%d on %s", i, peerAddr)
+// 	// Let's connect to the bootstrap nodes first. They will tell us about the
+// 	// other nodes in the network.
+// 	var wg sync.WaitGroup
+// 	for i, peerAddr := range bootstrapPeers {
+// 		logger.Debugf("connecting to bootstrap peer #%d on %s", i, peerAddr)
 
-		peerinfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
-		if err != nil {
-			logger.Errorf("error with bootstrap peer: %s", err)
-		}
+// 		peerinfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
+// 		if err != nil {
+// 			logger.Errorf("error with bootstrap peer: %s", err)
+// 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+// 		wg.Add(1)
+// 		go func() {
+// 			defer wg.Done()
 
-			// host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
-			if err := host.Connect(ctx, *peerinfo); err != nil {
-				logger.Warning(err)
-			} else {
-				logger.Info("Connection established with bootstrap node:", *peerinfo)
-			}
-		}()
-	}
-	wg.Wait()
+// 			// host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
+// 			if err := host.Connect(ctx, *peerinfo); err != nil {
+// 				logger.Warning(err)
+// 			} else {
+// 				logger.Info("Connection established with bootstrap node:", *peerinfo)
+// 			}
+// 		}()
+// 	}
+// 	wg.Wait()
 
-	// We use a rendezvous point "meet me here" to announce our location.
-	// This is like telling your friends to meet you at the Eiffel Tower.
-	logger.Info("Announcing ourselves...")
-	routingDiscovery := discovery.NewRoutingDiscovery(kademliaDHT)
-	discovery.Advertise(ctx, routingDiscovery, rendezVousString)
-	logger.Debug("Successfully announced!")
+// 	// We use a rendezvous point "meet me here" to announce our location.
+// 	// This is like telling your friends to meet you at the Eiffel Tower.
+// 	logger.Info("Announcing ourselves...")
+// 	routingDiscovery := discovery.NewRoutingDiscovery(kademliaDHT)
+// 	discovery.Advertise(ctx, routingDiscovery, rendezVousString)
+// 	logger.Debug("Successfully announced!")
 
-	// Now, look for others who have announced
-	// This is like your friend telling you the location to meet you.
-	logger.Debug("Searching for other peers...")
-	peerChan, err := routingDiscovery.FindPeers(ctx, rendezVousString)
-	if err != nil {
-		panic(err)
-	}
+// 	// Now, look for others who have announced
+// 	// This is like your friend telling you the location to meet you.
+// 	logger.Debug("Searching for other peers...")
+// 	peerChan, err := routingDiscovery.FindPeers(ctx, rendezVousString)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	go func() {
-		for peer := range peerChan {
-			if peer.ID == host.ID() {
-				continue
-			}
-			fmt.Println("Found peer:", peer)
+// 	go func() {
+// 		for peer := range peerChan {
+// 			if peer.ID == host.ID() {
+// 				continue
+// 			}
+// 			fmt.Println("Found peer:", peer)
 
-			fmt.Println("Connecting to:", peer)
-			peerDiscoveryNotifee.HandlePeerFound(peer)
-		}
-	}()
-}
+// 			fmt.Println("Connecting to:", peer)
+// 			peerDiscoveryNotifee.HandlePeerFound(peer)
+// 		}
+// 	}()
+// }
 
 func (n *P2PNode) Start() {
 	fmt.Printf("P2P listening on %s\n", n.Host.Addrs()[0])
