@@ -3,9 +3,10 @@ package sequencer
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
-type SequencerMode int
+type SequencerMode uint
 const (
 	PrimaryMode SequencerMode = iota
 	ReplicaMode
@@ -18,9 +19,7 @@ type SequencerNode struct {
 	Mode SequencerMode
 }
 
-func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode SequencerMode) (*SequencerNode) {
-	// Core sequencer engine.
-
+func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode SequencerMode, privateKey string, bootstrapPeersStr string) (*SequencerNode) {
 	// TODO: use sync=FULL for database durability during power loss.
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -40,7 +39,11 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 	
 	// P2P.
 	p2pAddr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", p2pPort)
-	p2p, err := NewP2PNode(p2pAddr)
+	bootstrapPeers, err := StringsToAddrs(strings.Split(bootstrapPeersStr, ","))
+	if err != nil {
+		panic(fmt.Errorf("couldn't parse bootstrap peers: %s", err))
+	}
+	p2p, err := NewP2PNode(p2pAddr, privateKey, bootstrapPeers)
 	if err != nil {
 		panic(fmt.Errorf("couldn't create network node: %s", err))
 	}
@@ -61,11 +64,13 @@ func (n *SequencerNode) Start() {
 		go n.P2P.GossipNewBlocks(n.Seq.BlockChannel)
 	}
 
-	if n.Mode == PrimaryMode {
+	if n.Mode == ReplicaMode {
 		receiveBlockChan := make(chan Block)
 		go n.P2P.ListenForNewBlocks(receiveBlockChan)
 		go (func(){
-			// block := <-receiveBlockChan
+			block := <-receiveBlockChan
+			fmt.Println("receive block", block)
+
 			// current block = 5
 			// new block = ?
 			// if currBlock.num < newBlock.num { core.ProcessBlock }

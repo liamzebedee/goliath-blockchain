@@ -88,9 +88,9 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 
 	// Verify signature.
 	digestHash := msg.SigHash()
-	fmt.Println("sighash: ", hexutil.Encode(digestHash))
 	signature, err := hexutil.Decode(msg.Sig)
-	fmt.Println("sig: ", hexutil.Encode(signature))
+
+	fmt.Printf("sequence hash=%s\n", hexutil.Encode(digestHash))
 
 	if err != nil {
 		// TODO

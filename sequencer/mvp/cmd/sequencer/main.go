@@ -59,12 +59,13 @@ func main() {
 	// if err != nil {
 	// 	panic(fmt.Errorf("couldn't open database %s: %s", DB_PATH, err))
 	// }
-
 	node := sequencer.NewSequencerNode(
 		DB_PATH,
 		*port,
 		"24344",
 		mode,
+		"",
+		"",
 	)
 
 	// Handle shutdowns.	
