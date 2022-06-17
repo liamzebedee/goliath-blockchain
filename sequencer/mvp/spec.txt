@@ -49,3 +49,10 @@ Tendermint:
 4. - Tendermint doesn't use compression natively
 5. For the MVP, we can build a model that's a bit different to tendermint using on-chain smart contracts (without a token!)
 6. + Tendermint already has p2p sync and light clients.
+
+
+### What's the difference between this and a simple geth chain with a solidity-based implementation?
+
+Again, a whole blockchain is more complex. 
+We are only emitting one log to the replicas - that of a new transaction.
+There isn't any need for bloom filters etc.

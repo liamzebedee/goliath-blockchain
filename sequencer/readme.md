@@ -4,8 +4,6 @@ sequencer
 
 Decentralized sequencer for Goliath PoC. 
 
-Can process ~400 TPS using the Tendermint BFT consensus algorithm.
-
 ## Design.
 
 ### Data structures.
@@ -21,26 +19,6 @@ The sequencer notarises transactions and assigns each one a timestamp, thus crea
  3. Must be Byzantine-Fault Tolerant.
  4. Must be able to be permissioned (eg. only authorised accounts can submit txs, for POC).
 
-### Choice.
+## Implementation.
 
-
-
-## Usage.
-
-The sequencer is a public Tendermint blockchain with permissioned usage. Why permissioned? Because the POC doesn't have payment for txs yet, and I'm not paying for your ponzi lmao.
-
-## Local development.
-
-```sh
-cd cosmos-sdk/
-make install
-cd build/
-
-# Run the chain.
-./simd --home ~/.simapp-node1 start
-```
-
-
-
-
-
+See [mvp/](./mvp).

@@ -71,12 +71,14 @@ func (n *SequencerNode) Start() {
 		go (func(){
 			for {
 				block := <-receiveBlockChan
-				fmt.Println("receive block", block)
+				
+				fmt.Println("verifying block:", block)
+				err := n.Seq.ProcessBlock(block)
+				if err != nil {
+					fmt.Println("error while verifying block", block, ":", err)
+				}
+				fmt.Println("verification success for block:", block)
 			}
-			
-			// current block = 5
-			// new block = ?
-			// if currBlock.num < newBlock.num { core.ProcessBlock }
 		})()
 	}
 

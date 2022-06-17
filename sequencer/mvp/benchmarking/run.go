@@ -32,7 +32,7 @@ func main() {
 	go func() {
 		i := 0
 		host := replicas[0].P2P.Host
-		
+
 		for true {
 			conns := host.Network().Conns()
 			fmt.Printf("waiting for connections (%d): %s\n", i, conns)
@@ -43,7 +43,7 @@ func main() {
 				break
 			}
 
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 

@@ -14,10 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type Block struct {
-	data []byte
-}
-
 type SequencerCore struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
@@ -65,25 +61,49 @@ func (s *SequencerCore) Close() {
 // 	}
 // }
 
-// Assigns a sequence number for the transaction.
-func (s *SequencerCore) Sequence(msgData string) (int64, error) {
+func (s *SequencerCore) ProcessBlock(block Block) (error) {
+	// current block = 5
+	// new block = ?
+	// if currBlock.num < newBlock.num { core.ProcessBlock }
+
+	// TODO
 	var msg SequenceMessage
 
-	err := json.Unmarshal([]byte(msgData), &msg)
+	err := json.Unmarshal([]byte(block.sequenceMsg), &msg)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
+	err = s.verifySequenceMessage(msg)
+	if err != nil {
+		return err
+	}
+	
+	// Then append to the log.
+	_, err = s.db.Exec(
+		"INSERT INTO sequence values (?, ?, ?)",
+		nil,
+		block.sequenceMsg,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	return nil
+}
+
+func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage) (error) {
 	if msg.Type != SEQUENCE_MESSAGE_TYPE {
-		return 0, fmt.Errorf("unhandled message type: %s", msg.Type)
+		return fmt.Errorf("unhandled message type: %s", msg.Type)
 	}
 
 	if len(msg.Data) == 0 || msg.Sig == "" {
-		return 0, fmt.Errorf("message is malformed")
+		return fmt.Errorf("message is malformed")
 	}
 
 	if len(msg.From) == 0 || msg.From == "0x" {
-		return 0, fmt.Errorf("message is malformed")
+		return fmt.Errorf("message is malformed")
 	}
 
 	// Verify signature.
@@ -95,35 +115,35 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	if err != nil {
 		// TODO
 		fmt.Println("error while parsing msg.Sig", err.Error())
-		return 0, fmt.Errorf("invalid signature")
+		return fmt.Errorf("invalid signature")
 	}
 
 	pubkey, err := crypto.Ecrecover(digestHash, signature)
 	if err != nil {
 		// TODO
 		fmt.Println("error while recovering pubkey:", err.Error())
-		return 0, fmt.Errorf("invalid signature")
+		return fmt.Errorf("invalid signature")
 	}
 	
 	fromField, err := hexutil.Decode(msg.From)
 	if err != nil {
-		return 0, fmt.Errorf("message is malformed")
+		return fmt.Errorf("message is malformed")
 	}
 
 	fromPubkey, err := crypto.DecompressPubkey(fromField)
 	if err != nil {
-		return 0, fmt.Errorf("message is malformed")
+		return fmt.Errorf("message is malformed")
 	}
 
 	if !bytes.Equal(pubkey, crypto.FromECDSAPub(fromPubkey)) {
 		fmt.Println("message signature is for different pubkey:")
-		return 0, fmt.Errorf("invalid signature")
+		return fmt.Errorf("invalid signature")
 	}
 
 	// remove recovery id (last byte) from signature.
 	signatureValid := crypto.VerifySignature(pubkey, digestHash, signature[:len(signature)-1])
 	if !signatureValid {
-		return 0, fmt.Errorf("invalid signature")
+		return fmt.Errorf("invalid signature")
 	}
 
 	// Check expiry conditions.
@@ -136,17 +156,34 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 			if err != nil {
 				// TODO
 				fmt.Println("error while parsing expiry check time", err.Error())
-				return 0, fmt.Errorf("message is malformed")
+				return fmt.Errorf("message is malformed")
 			}
 			
 			if int64(expiry_time) < time.Now().UnixMilli() {
-				return 0, fmt.Errorf("message expired")
+				return fmt.Errorf("message expired")
 			}
 		} else {
-			return 0, fmt.Errorf("unknown expiry condition '%s'", expiry_check_type)
+			return fmt.Errorf("unknown expiry condition '%s'", expiry_check_type)
 		}
 	}
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Assigns a sequence number for the transaction.
+func (s *SequencerCore) Sequence(msgData string) (int64, error) {
+	var msg SequenceMessage
+
+	err := json.Unmarshal([]byte(msgData), &msg)
+	if err != nil {
+		return 0, err
+	}
+
+	err = s.verifySequenceMessage(msg)
 	if err != nil {
 		return 0, err
 	}
@@ -164,8 +201,9 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	}
 
 	newBlock := Block{
-		data: []byte{1,2,3,4},
+		sequenceMsg: []byte(msgData),
 	}
+
 	s.BlockChannel <- newBlock
 
 	lastId, err := res.LastInsertId()

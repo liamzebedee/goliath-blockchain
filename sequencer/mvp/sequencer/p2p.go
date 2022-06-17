@@ -205,7 +205,7 @@ func (n *P2PNode) HandlePeerFound(peerinfo peer.AddrInfo) {
 func (n *P2PNode) GossipNewBlocks(newBlockChan chan Block) {
 	for {
 		block := <- newBlockChan
-		n.newBlocks.Publish(n.ctx, block.data)
+		n.newBlocks.Publish(n.ctx, block.sequenceMsg)
 	}
 }
 
@@ -223,10 +223,10 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {
 		}
 
 		block := Block{
-			data: msg.Data,
+			sequenceMsg: msg.Data,
 		}
 
-		fmt.Printf("new block: %s\n", block)
+		fmt.Printf("pubsub - new block: %s\n", block)
 		newBlockChan <- block
 
 		// only forward messages delivered by others

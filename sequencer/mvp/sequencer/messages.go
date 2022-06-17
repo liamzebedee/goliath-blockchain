@@ -69,3 +69,11 @@ func (msg SequenceMessage) Signed(signer Signer) (SequenceMessage) {
 
 	return msg_signed
 }
+type Block struct {
+	sequenceMsg []byte
+}
+
+func (b Block) String() string {
+	hash := crypto.Keccak256Hash(b.sequenceMsg)
+	return hexutil.Encode(hash.Bytes())
+}
