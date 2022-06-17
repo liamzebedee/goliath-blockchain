@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/libp2p/go-libp2p"
@@ -24,7 +23,7 @@ const DHT_RENDEZVOUS_MAGIC = "goliath/sequencer/queen-st-hungry-jacks"
 const PUBSUB_TOPIC_NEW_BLOCKS = "newblocks"
 
 type P2PNode struct {
-	host libp2pHost.Host
+	Host libp2pHost.Host
 	ctx context.Context
 	newBlocks *pubsub.Topic
 }
@@ -60,7 +59,11 @@ func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList)
 		libp2p.ListenAddrStrings(multiaddr),
 		libp2p.Identity(privateKey),
 	)
+	if err != nil {
+		panic(err)
+	}
 
+	// Debug log on first setup.
 	init := true
 	if init {
 		rawkey, err := crypto.MarshalPrivateKey(privateKey)
@@ -70,10 +73,6 @@ func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList)
 
 		fmt.Printf("P2P multiaddr: %s/p2p/%s\n", host.Addrs()[0], host.ID())
 		fmt.Printf("P2P private key: %s\n", hexutil.Encode(rawkey))
-	}
-
-	if err != nil {
-		panic(err)
 	}
 
 	ctx := context.Background()
@@ -105,7 +104,7 @@ func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList)
 	}
 
 	node := &P2PNode{
-		host: host,
+		Host: host,
 		ctx: ctx,
 		newBlocks: newBlocks,
 	}
@@ -148,7 +147,6 @@ func startDHT(host libp2pHost.Host, bootstrapPeers AddrList, rendezVousString st
 			defer wg.Done()
 
 			// host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
-
 			if err := host.Connect(ctx, *peerinfo); err != nil {
 				logger.Warning(err)
 			} else {
@@ -187,7 +185,7 @@ func startDHT(host libp2pHost.Host, bootstrapPeers AddrList, rendezVousString st
 }
 
 func (n *P2PNode) Start() {
-	fmt.Printf("P2P listening on %s\n", n.host.Addrs()[0])
+	fmt.Printf("P2P listening on %s\n", n.Host.Addrs()[0])
 }
 
 // discoveryNotifee gets notified when we find a new peer
@@ -197,11 +195,11 @@ func (n *P2PNode) Start() {
 func (n *P2PNode) HandlePeerFound(peerinfo peer.AddrInfo) {
 	fmt.Printf("discovered new peer %s\n", peerinfo.ID.Pretty())
 	
-	// err := n.host.Connect(context.Background(), pi)
-	n.host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
-	// if err != nil {
-	// 	fmt.Printf("error connecting to peer %s: %s\n", pi.ID.Pretty(), err)
-	// }
+	err := n.Host.Connect(context.Background(), peerinfo)
+	// n.host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
+	if err != nil {
+		fmt.Printf("error connecting to peer %s: %s\n", peerinfo.ID.Pretty(), err)
+	}
 }
 
 func (n *P2PNode) GossipNewBlocks(newBlockChan chan Block) {
@@ -247,5 +245,5 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {
 }
 
 func (n *P2PNode) Close() (error) {
-	return n.host.Close()
+	return n.Host.Close()
 }

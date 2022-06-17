@@ -43,6 +43,7 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 	if err != nil {
 		panic(fmt.Errorf("couldn't parse bootstrap peers: %s", err))
 	}
+
 	p2p, err := NewP2PNode(p2pAddr, privateKey, bootstrapPeers)
 	if err != nil {
 		panic(fmt.Errorf("couldn't create network node: %s", err))
@@ -68,9 +69,11 @@ func (n *SequencerNode) Start() {
 		receiveBlockChan := make(chan Block)
 		go n.P2P.ListenForNewBlocks(receiveBlockChan)
 		go (func(){
-			block := <-receiveBlockChan
-			fmt.Println("receive block", block)
-
+			for {
+				block := <-receiveBlockChan
+				fmt.Println("receive block", block)
+			}
+			
 			// current block = 5
 			// new block = ?
 			// if currBlock.num < newBlock.num { core.ProcessBlock }

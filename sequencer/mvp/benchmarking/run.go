@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -25,12 +26,36 @@ func main() {
 	replicas := make([]*sequencer.SequencerNode, 5)
 	replicas[0] = sequencer.NewSequencerNode(":memory:", "49100", "49101", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
 
+
+	// Wait until they're connected for the test.
+	waitConnectedP2P := make(chan bool)
+	go func() {
+		i := 0
+		host := replicas[0].P2P.Host
+		
+		for true {
+			conns := host.Network().Conns()
+			fmt.Printf("waiting for connections (%d): %s\n", i, conns)
+			i++
+			
+			if len(conns) > 0 {
+				waitConnectedP2P <- true
+				break
+			}
+
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+
 	// Start them up.
 	go primary.Start()
 	defer primary.Close()
 	
 	go replicas[0].Start()
 	defer replicas[0].Close()
+
+	<-waitConnectedP2P
 
 	// Post 10K tps to the primary node.
 	signer := utils.NewEthereumECDSASigner("3977045d27df7e401ecf1596fd3ae86b59f666944f81ba8dbf547c2269902f6b")
