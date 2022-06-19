@@ -247,3 +247,4 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {
 func (n *P2PNode) Close() (error) {
 	return n.Host.Close()
 }
+

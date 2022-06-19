@@ -2,23 +2,36 @@ package sequencer
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"database/sql"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+// type EventListener interface {
+// 	Unsubscribe()
+// }
+
+type onBlockFn func (block Block)
+
+type OnBlockEventListener struct {
+	handler onBlockFn
+}
+
+
 type SequencerCore struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
 
 	BlockChannel chan Block
+	blockListeners []*OnBlockEventListener
 
 	Total int64
 	// milliseconds.
@@ -43,13 +56,34 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	// 	panic(err)
 	// }
 
-	return &SequencerCore{
+	core := &SequencerCore{
 		// privateKey *ecdsa.PrivateKey
 		// privateKey: privateKey,
-		BlockChannel: make(chan Block),
+		BlockChannel: make(chan Block, 5),
+		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
 	}
+
+	// Listen for new blocks.
+	go func(){
+		for {
+			block := <-core.BlockChannel
+			for _, list := range core.blockListeners {
+				list.handler(block)
+			}
+		}
+	}()
+
+	return core
 }
+
+func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {
+	list := &OnBlockEventListener{
+		handler: onBlock,
+	}
+	s.blockListeners = append(s.blockListeners, list)
+}
+
 
 func (s *SequencerCore) Close() {
 	s.db.Close()
@@ -61,11 +95,11 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	// if currBlock.num < newBlock.num { core.ProcessBlock }
 
 	// TODO
-	var msg SequenceMessage
+	var msg *messages.SequenceTx
 
-	err := json.Unmarshal([]byte(block.sequenceMsg), &msg)
+	err := proto.Unmarshal([]byte(block.sequenceMsg), msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("message is malformed")
 	}
 
 	err = s.verifySequenceMessage(msg, false)
@@ -87,44 +121,30 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	return nil
 }
 
-func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage, checkUnixExpiry bool) (error) {
-	if msg.Type != SEQUENCE_MESSAGE_TYPE {
-		return fmt.Errorf("unhandled message type: %s", msg.Type)
-	}
+func (s *SequencerCore) verifySequenceMessage(msg *messages.SequenceTx, checkUnixExpiry bool) (error) {
+	// if msg.Type != SEQUENCE_MESSAGE_TYPE {
+	// 	return fmt.Errorf("unhandled message type: %s", msg.Type)
+	// }
 
-	if len(msg.Data) == 0 || msg.Sig == "" {
+	if len(msg.Data) == 0 || msg.Sig == nil {
 		return fmt.Errorf("message is malformed")
 	}
 
-	if len(msg.From) == 0 || msg.From == "0x" {
+	if len(msg.From) == 0 || msg.From == nil {
 		return fmt.Errorf("message is malformed")
 	}
-
+	
 	// Verify signature.
 	digestHash := msg.SigHash()
-	signature, err := hexutil.Decode(msg.Sig)
 
-	fmt.Printf("sequence hash=%s\n", hexutil.Encode(digestHash))
-
-	if err != nil {
-		// TODO
-		fmt.Println("error while parsing msg.Sig", err.Error())
-		return fmt.Errorf("invalid signature")
-	}
-
-	pubkey, err := crypto.Ecrecover(digestHash, signature)
+	pubkey, err := crypto.Ecrecover(digestHash, msg.Sig)
 	if err != nil {
 		// TODO
 		fmt.Println("error while recovering pubkey:", err.Error())
 		return fmt.Errorf("invalid signature")
 	}
-	
-	fromField, err := hexutil.Decode(msg.From)
-	if err != nil {
-		return fmt.Errorf("message is malformed")
-	}
 
-	fromPubkey, err := crypto.DecompressPubkey(fromField)
+	fromPubkey, err := crypto.DecompressPubkey(msg.From)
 	if err != nil {
 		return fmt.Errorf("message is malformed")
 	}
@@ -135,17 +155,17 @@ func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage, checkUnixExpi
 	}
 
 	// remove recovery id (last byte) from signature.
-	signatureValid := crypto.VerifySignature(pubkey, digestHash, signature[:len(signature)-1])
+	signatureValid := crypto.VerifySignature(pubkey, digestHash, msg.Sig[:len(msg.Sig)-1])
 	if !signatureValid {
 		return fmt.Errorf("invalid signature")
 	}
 
 	// Check expiry conditions.
-	for _, expiry_cond := range msg.Expires {
-		expiry_check_type := expiry_cond[0]
-
-		if expiry_check_type == "unix" && checkUnixExpiry {
-			expiry_time := expiry_cond[1].(float64)
+	for _, expiryCondition := range msg.Expires {
+		if cond := expiryCondition.GetUnix(); cond != nil {
+			if (!checkUnixExpiry) {
+				continue
+			}
 
 			if err != nil {
 				// TODO
@@ -153,11 +173,12 @@ func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage, checkUnixExpi
 				return fmt.Errorf("message is malformed")
 			}
 			
-			if int64(expiry_time) < time.Now().UnixMilli() {
+			if cond.Time < uint64(time.Now().UnixMilli()) {
 				return fmt.Errorf("message expired")
 			}
 		} else {
-			return fmt.Errorf("unknown expiry condition '%s'", expiry_check_type)
+			// TODO this won't actually print the Condition id. Do we need this? 
+			return fmt.Errorf("unknown expiry condition '%s'", expiryCondition.GetCondition())
 		}
 	}
 
@@ -170,9 +191,14 @@ func (s *SequencerCore) verifySequenceMessage(msg SequenceMessage, checkUnixExpi
 
 // Assigns a sequence number for the transaction.
 func (s *SequencerCore) Sequence(msgData string) (int64, error) {
-	var msg SequenceMessage
+	msg := &messages.SequenceTx{}
 
-	err := json.Unmarshal([]byte(msgData), &msg)
+	msgBuf, err := hexutil.Decode(msgData)
+	if err != nil {
+		return 0, err
+	}
+
+	err = proto.Unmarshal(msgBuf, msg)
 	if err != nil {
 		return 0, err
 	}
@@ -182,6 +208,8 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 		return 0, err
 	}
 	
+	fmt.Printf("sequence hash=%s\n", hexutil.Encode(msg.SigHash()))
+
 	// Then append to the log.
 	// Save to DB.
 	res, err := s.db.Exec(

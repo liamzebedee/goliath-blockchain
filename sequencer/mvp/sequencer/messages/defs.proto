@@ -28,6 +28,6 @@ message ExpiryCondition {
 }
 
 message UNIXExpiryCondition {
-  optional uint64 time = 1;
+  uint64 time = 1;
 }
 
