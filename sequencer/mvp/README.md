@@ -50,21 +50,22 @@ go run run.go
 
 ## Philosophy.
 
-This is a fully-fledged tx sequencer in around ~1000 LOC.
+This is a fully-fledged tx sequencer in around ~2000 LOC.
 
 ```
 (base) ➜  mvp git:(master) ✗ find . -name '*.go' | xargs wc -l
-      85 ./cmd/sequencer/main.go
-     248 ./sequencer/p2p.go
-     122 ./sequencer/core_test.go
-     233 ./sequencer/core.go
-      55 ./sequencer/utils/test_utils.go
-      79 ./sequencer/messages.go
+      95 ./cmd/sequencer/main.go
+     254 ./sequencer/p2p.go
+     137 ./sequencer/messages/methods.go
+     422 ./sequencer/messages/defs.pb.go
+     128 ./sequencer/core_test.go
+     317 ./sequencer/core.go
+      48 ./sequencer/utils/test_utils.go
       49 ./sequencer/utils.go
       43 ./sequencer/rpc.go
-      92 ./sequencer/node.go
-      83 ./benchmarking/run.go
-    1089 total
+     112 ./sequencer/node.go
+      84 ./benchmarking/run.go
+    1689 total
 ```
 
 
