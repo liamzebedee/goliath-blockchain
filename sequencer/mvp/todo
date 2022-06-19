@@ -1,0 +1,75 @@
+[x] fix p2p conn so it works
+[x] verify blocks on the replica side
+[x] implement sequencer primary signing of blocks, each peer verifies it
+[ ] replicas keep track of operator using eth l2 (polygon). they verify every block, verify the tx, then insert into their db.
+[ ] handle bad paths - reject blocks from different operators, cap txs at a max size, etc.
+
+
+ux:
+[ ] check if db already exist
+[ ] do migration for new db
+[ ] separate command to generate private key
+[ ] replica should fail within 10s if it can't connect to any nodes. maybe heartbeat message "connected to x nodes"
+[ ] the sequencer should periodically advertise itself on a pubsub topic when it starts up
+    this helps if it changes network addresses 
+
+
+
+
+distribute each block? 
+good for encapsulation
+
+
+
+
+
+
+
+we don't really care about efficiently proving anything
+
+
+
+how can we cycle keys? 
+- allow changing the operator of the sequencer
+- upgrade the contract root hash in the node software
+
+what if the database crashes and we lose the sequencer primary?
+- we can use any of the replicas, so long as the sequencer hasn't equivocated
+- we use sqlite in WAL mode
+
+how do we check the sequencer health? 
+do we want to know which node is the sequencer?
+- the operator is only identified by their pubkey. so it could be anyone. it could even be a threshold ecdsa network. 
+
+
+
+
+o canonical encoding for all data structures so hashes are stable
+o compression
+    go get github.com/golang/snappy
+
+
+
+
+add them to the database
+use protobufs for the messages
+compress data in the sequencer
+have some sort of version string for the pubsub
+
+simple command to run a node
+    sequencer init
+        create new privkey
+        write the details for peering
+
+
+test
+    GossipNewBlocks
+
+
+
+notes:
+
+
+each peer operates as a replica of the sequencer blockchain
+they listen for new blocks and verify them
+if the sequencer produces two different blocks for the same hash (equivocation), the canonical chain is the block with the smallest hash (as an integer)
