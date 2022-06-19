@@ -9,7 +9,7 @@ It is permissioned - only certain accounts are allowed to append to the sequence
 
 The node can operate in "primary" or "replica" mode. Operating as a replica means mirroring the content of the primary.
 
-The primary signs every new sequenced tx, and can be punished for equivocation (signing two conflicting statements about the tx sequencing) through slashing on Ethereum L2.
+The primary signs every new sequenced tx, and can be punished for equivocation (signing two conflicting statements about the tx sequencing) **through slashing on Ethereum L2**.
 
 ## Reference.
 
@@ -29,6 +29,9 @@ sequencer_info
 node -e "console.log(require('ethers').Wallet.createRandom().privateKey)"
 # 0xd96a6cca804b24f540dc41ac3f50e2acd7510c33662c3040bafc07bc95b035ed
 
+./scripts/build.sh
+
+# Make a directory for data.
 mkdir tmp
 
 # Run the sequencer primary.
@@ -36,6 +39,13 @@ PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0
 
 # Run a sequencer replica.
 PRIVATE_KEY="" go run cmd/sequencer/main.go -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
+```
+
+## Benchmarking.
+
+```sh
+cd benchmarking
+go run run.go
 ```
 
 ## Philosophy.
