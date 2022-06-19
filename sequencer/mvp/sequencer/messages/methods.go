@@ -78,3 +78,61 @@ func ConstructSequenceMessage(txData string, expiresIn time.Duration) (*Sequence
 	}
 	return &msg
 }
+
+
+
+
+
+// Now for the block.
+
+func ConstructBlock(prevBlockHash []byte, sequenceMessage *SequenceTx) (*Block) {
+	block := &Block{
+		PrevBlockHash: prevBlockHash,
+		Body: sequenceMessage,
+		Sig: []byte{},
+	}
+
+	return block
+}
+
+func (block *Block) PrettyString() string {
+	var bodyStr string = ""
+	if body := block.GetBody(); body != nil {
+		bodyStr = hexutil.Encode(body.SigHash())
+	}
+
+	return fmt.Sprintf(
+		"block [hash=%s prev=%s seq_tx=%s]", 
+		hexutil.Encode(block.SigHash()),
+		hexutil.Encode(block.PrevBlockHash),
+		bodyStr,	
+	)
+}
+
+func (block *Block) PrettyHash() string {
+	return hexutil.Encode(block.SigHash())
+}
+
+func (block *Block) SigHash() ([]byte) {
+	unsigned := proto.Clone(block).(*Block)
+	unsigned.Sig = []byte{}
+
+	buf, err := proto.Marshal(unsigned)
+	if err != nil {
+		panic(err)
+	}
+
+	hash := crypto.Keccak256Hash(buf)
+	return hash.Bytes()
+}
+
+func (block *Block) Signed(signer utils.Signer) (*Block) {
+	signature, err := signer.Sign(block.SigHash())
+	if err != nil {
+		panic(err)
+	}
+	
+	signed := proto.Clone(block).(*Block)
+	signed.Sig = signature
+	return signed
+}

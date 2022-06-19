@@ -64,10 +64,10 @@ func main() {
 	<-waitConnectedP2P
 
 	// Post 10K tps to the primary node.
-	signer := utils.NewEthereumECDSASigner("3977045d27df7e401ecf1596fd3ae86b59f666944f81ba8dbf547c2269902f6b")
+	signer := utils.NewEthereumECDSASigner("3fd7f88cb790c6a8b54d4e1aaebba6775f427bb8fa2276e933b7c3440f164caa")
 	// msgs := make([]sequencer.SequenceMessage, 1000)
 	
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 5; i++ {
 		msg := generateMockSequenceTx(signer, i)
 		// msgs[i] = generateMockSequenceTx(signer)
 		go (func(){

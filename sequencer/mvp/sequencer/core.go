@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -19,7 +20,7 @@ import (
 // 	Unsubscribe()
 // }
 
-type onBlockFn func (block Block)
+type onBlockFn func (block *messages.Block)
 
 type OnBlockEventListener struct {
 	handler onBlockFn
@@ -27,18 +28,20 @@ type OnBlockEventListener struct {
 
 
 type SequencerCore struct {
-	// privateKey *ecdsa.PrivateKey
+	signer utils.Signer
 	db *sql.DB
 
-	blockChannel chan Block
+	blockChannel chan *messages.Block
 	blockListeners []*OnBlockEventListener
+	
+	lastBlock *messages.Block
 
 	Total int64
 	// milliseconds.
 	LastSequenceTime int64
 }
 
-func NewSequencerCore(db *sql.DB) (*SequencerCore) {
+func NewSequencerCore(db *sql.DB, privateKeyHex string) (*SequencerCore) {
 	fmt.Println("migrating database")
 	
 	// TODO: handle migation errors
@@ -57,9 +60,8 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	// }
 
 	core := &SequencerCore{
-		// privateKey *ecdsa.PrivateKey
-		// privateKey: privateKey,
-		blockChannel: make(chan Block, 5),
+		signer: utils.NewEthereumECDSASigner(privateKeyHex),
+		blockChannel: make(chan *messages.Block, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
 	}
@@ -68,6 +70,14 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	go func(){
 		for {
 			block := <-core.blockChannel
+
+			// TODO rename + refactor.
+			// Sign each block.
+			block = block.Signed(core.signer)
+			block.PrevBlockHash = core.getLastBlockHash()
+			core.lastBlock = block
+			fmt.Println("chained a block:", block.PrettyString())
+
 			for _, list := range core.blockListeners {
 				go list.handler(block)
 			}
@@ -77,6 +87,15 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	return core
 }
 
+func (s *SequencerCore) getLastBlockHash() ([]byte) {
+	// Genesis.
+	if (s.lastBlock == nil) {
+		return []byte{0}
+	}
+	
+	return s.lastBlock.SigHash()
+}
+
 func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {
 	list := &OnBlockEventListener{
 		handler: onBlock,
@@ -84,27 +103,61 @@ func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {
 	s.blockListeners = append(s.blockListeners, list)
 }
 
+func (s *SequencerCore) GetOperatorPubkey() ([]byte) {
+	return hexutil.MustDecode("0x0466724a07b5fc7937b0a5ef42d9d25b496958426e2d36c69e44e7e33c0b1f835e29127894ac9183a8f9353e78bd2a0b2667c23ae1ec88b4e6f9ba18b2854465aa")
+}
 
 func (s *SequencerCore) Close() {
 	s.db.Close()
 }
 
-func (s *SequencerCore) ProcessBlock(block Block) (error) {
+func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 	// current block = 5
 	// new block = ?
 	// if currBlock.num < newBlock.num { core.ProcessBlock }
+	fmt.Printf("processing block: %s\n", block.PrettyString())
 
-	fmt.Println(block)
+	// 
+	// Verify block.
+	// 
 
-	// TODO
-	msg := &messages.SequenceTx{}
+	// Compute the digest which was signed, aka the "sighash".
+	digestHash := block.SigHash()
 
-	err := proto.Unmarshal(block.sequenceMsg, msg)
+	// Recover pubkey.
+	pubkey, err := crypto.Ecrecover(digestHash, block.Sig)
 	if err != nil {
-		return fmt.Errorf("message is malformed: %s", err)
+		// TODO
+		fmt.Println("error while recovering pubkey:", err.Error())
+		return fmt.Errorf("invalid signature")
 	}
 
-	err = s.verifySequenceMessage(msg, false)
+	// Verify signer.
+	// expectedPubkeyECDSA, err := crypto.DecompressPubkey(hexutil.MustDecode("0x0266724a07b5fc7937b0a5ef42d9d25b496958426e2d36c69e44e7e33c0b1f835e"))
+	// if err != nil {
+	// 	return fmt.Errorf("message is malformed")
+	// }
+
+	// expectedPubkey := crypto.FromECDSAPub(expectedPubkeyECDSA)
+	expectedPubkey := s.GetOperatorPubkey()
+	if !bytes.Equal(pubkey, expectedPubkey) {
+		return fmt.Errorf("invalid signer for block\n     got: %s\nexpected: %s\n", hexutil.Encode(pubkey), hexutil.Encode(expectedPubkey))
+	}
+
+	// Verify signature.
+	// remove recovery id (last byte) from signature.
+	signatureValid := crypto.VerifySignature(pubkey, digestHash, block.Sig[:len(block.Sig)-1])
+	if !signatureValid {
+		return fmt.Errorf("invalid signature")
+	}
+	
+	// Now verify the sequence message inside.
+	body := block.GetBody()
+	if body == nil {
+		return fmt.Errorf("block body is empty")
+	}
+
+	err = s.verifySequenceMessage(body, false)
 	if err != nil {
 		return err
 	}
@@ -113,7 +166,7 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	_, err = s.db.Exec(
 		"INSERT INTO sequence values (?, ?, ?)",
 		nil,
-		block.sequenceMsg,
+		body.ToHex(),
 		nil,
 	)
 	if err != nil {
@@ -224,17 +277,15 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 		return 0, fmt.Errorf("error writing tx to db: %s", err)
 	}
 
-	newBlock := Block{
-		sequenceMsg: msgBuf,
-	}
-
-	s.blockChannel <- newBlock
-
 	lastId, err := res.LastInsertId()
 	if err != nil {
 		// TODO
 		panic(err)
 	}
+
+	// Now chain a block.
+	block := messages.ConstructBlock(s.getLastBlockHash(), msg)
+	s.blockChannel <- block
 
 	return lastId, nil
 }

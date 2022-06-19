@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 )
 
 type SequencerMode uint
@@ -32,7 +34,9 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 		panic(fmt.Errorf("couldn't connect to database: %s", err))
 	}
 
-	seq := NewSequencerCore(db)
+	// TODO private key here
+	// TODO hex string remove 0x
+	seq := NewSequencerCore(db, "3977045d27df7e401ecf1596fd3ae86b59f666944f81ba8dbf547c2269902f6b")
 
 	// RPC.
 	rpcAddr := fmt.Sprintf("0.0.0.0:%s", rpcPort)
@@ -63,24 +67,26 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 func (n *SequencerNode) Start() {
 	// Hook them up.
 	if n.Mode == PrimaryMode {
-		n.Seq.OnNewBlock(func (block Block) {
+		n.Seq.OnNewBlock(func (block *messages.Block) {
 			go n.P2P.GossipNewBlock(block)
 		})
 	}
 
 	if n.Mode == ReplicaMode {
-		receiveBlockChan := make(chan Block, 1) // TODO event handler here
+		receiveBlockChan := make(chan *messages.Block, 1) // TODO event handler here
 		go n.P2P.ListenForNewBlocks(receiveBlockChan)
 		go (func(){
 			for {
 				block := <-receiveBlockChan
 				
-				fmt.Println("verifying block:", block)
+				fmt.Println("verifying block:", block.PrettyHash())
 				err := n.Seq.ProcessBlock(block)
 				if err != nil {
-					fmt.Println("error while verifying block", block, ":", err)
+					fmt.Println("error while verifying block", block.PrettyHash(), ":", err)
+				} else {
+					fmt.Println("verification success for block:", block.PrettyHash())
 				}
-				fmt.Println("verification success for block:", block)
+				
 			}
 		})()
 	}

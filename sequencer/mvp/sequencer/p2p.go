@@ -9,6 +9,8 @@ import (
 	// dht "github.com/libp2p/go-libp2p-kad-dht"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/golang/protobuf/proto"
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pHost "github.com/libp2p/go-libp2p-core/host"
@@ -202,11 +204,17 @@ func (n *P2PNode) HandlePeerFound(peerinfo peer.AddrInfo) {
 	}
 }
 
-func (n *P2PNode) GossipNewBlock(block Block) {
-	n.newBlocks.Publish(n.ctx, block.sequenceMsg)
+func (n *P2PNode) GossipNewBlock(block *messages.Block) {
+	buf, err := proto.Marshal(block)
+	if err != nil {
+		// TODO: robust error handling?
+		panic(fmt.Errorf("error encoding block:", err))
+	}
+
+	n.newBlocks.Publish(n.ctx, buf)
 }
 
-func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {
+func (n *P2PNode) ListenForNewBlocks(newBlockChan chan *messages.Block) {
 	sub, err := n.newBlocks.Subscribe()
 	if err != nil {
 		panic(err)
@@ -219,11 +227,10 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {
 			return
 		}
 
-		block := Block{
-			sequenceMsg: msg.Data,
-		}
+		block := &messages.Block{}
+		proto.Unmarshal(msg.Data, block)
 
-		fmt.Printf("pubsub - new block: %s\n", block)
+		fmt.Printf("pubsub - new block: %s\n", block.PrettyHash())
 		newBlockChan <- block
 
 		// only forward messages delivered by others
