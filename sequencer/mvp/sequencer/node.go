@@ -64,12 +64,12 @@ func (n *SequencerNode) Start() {
 	// Hook them up.
 	if n.Mode == PrimaryMode {
 		n.Seq.OnNewBlock(func (block Block) {
-			n.P2P.GossipNewBlock(block)
+			go n.P2P.GossipNewBlock(block)
 		})
 	}
 
 	if n.Mode == ReplicaMode {
-		receiveBlockChan := make(chan Block)
+		receiveBlockChan := make(chan Block, 1) // TODO event handler here
 		go n.P2P.ListenForNewBlocks(receiveBlockChan)
 		go (func(){
 			for {
