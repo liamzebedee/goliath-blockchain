@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
+	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func generateMockSequenceTx(signer sequencer.Signer, nonce int) (sequencer.SequenceMessage) {
-	msg := utils.ConstructSequenceMessage("foo", 5 * time.Second)
-	msg.Nonce = string(nonce)
-	msg = msg.SetFrom(signer.GetPubkey())
+func generateMockSequenceTx(signer utils.Signer, nonce int) (*messages.SequenceTx) {
+	msg := messages.ConstructSequenceMessage("0x4200", 5 * time.Second)
+	msg.Nonce = []byte(string(nonce))
+	msg.SetFrom(signer.GetPubkey())
 	msg = msg.Signed(signer)
 	return msg
 }
@@ -70,7 +71,7 @@ func main() {
 		msg := generateMockSequenceTx(signer, i)
 		// msgs[i] = generateMockSequenceTx(signer)
 		go (func(){
-			_, err := primary.Seq.Sequence(msg.ToJSON())
+			_, err := primary.Seq.Sequence(msg.ToHex())
 			if err != nil {
 				log.Fatal(err)
 			}

@@ -94,12 +94,14 @@ func (s *SequencerCore) ProcessBlock(block Block) (error) {
 	// new block = ?
 	// if currBlock.num < newBlock.num { core.ProcessBlock }
 
-	// TODO
-	var msg *messages.SequenceTx
+	fmt.Println(block)
 
-	err := proto.Unmarshal([]byte(block.sequenceMsg), msg)
+	// TODO
+	msg := &messages.SequenceTx{}
+
+	err := proto.Unmarshal(block.sequenceMsg, msg)
 	if err != nil {
-		return fmt.Errorf("message is malformed")
+		return fmt.Errorf("message is malformed: %s", err)
 	}
 
 	err = s.verifySequenceMessage(msg, false)
@@ -223,7 +225,7 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	}
 
 	newBlock := Block{
-		sequenceMsg: []byte(msgData),
+		sequenceMsg: msgBuf,
 	}
 
 	s.blockChannel <- newBlock
