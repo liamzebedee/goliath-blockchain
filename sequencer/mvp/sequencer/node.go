@@ -63,7 +63,9 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 func (n *SequencerNode) Start() {
 	// Hook them up.
 	if n.Mode == PrimaryMode {
-		go n.P2P.GossipNewBlocks(n.Seq.BlockChannel)
+		n.Seq.OnNewBlock(func (block Block) {
+			n.P2P.GossipNewBlock(block)
+		})
 	}
 
 	if n.Mode == ReplicaMode {

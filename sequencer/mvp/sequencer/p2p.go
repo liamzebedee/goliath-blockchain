@@ -202,11 +202,8 @@ func (n *P2PNode) HandlePeerFound(peerinfo peer.AddrInfo) {
 	}
 }
 
-func (n *P2PNode) GossipNewBlocks(newBlockChan chan Block) {
-	for {
-		block := <- newBlockChan
-		n.newBlocks.Publish(n.ctx, block.sequenceMsg)
-	}
+func (n *P2PNode) GossipNewBlock(block Block) {
+	n.newBlocks.Publish(n.ctx, block.sequenceMsg)
 }
 
 func (n *P2PNode) ListenForNewBlocks(newBlockChan chan Block) {

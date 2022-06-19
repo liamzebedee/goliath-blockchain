@@ -30,7 +30,7 @@ type SequencerCore struct {
 	// privateKey *ecdsa.PrivateKey
 	db *sql.DB
 
-	BlockChannel chan Block
+	blockChannel chan Block
 	blockListeners []*OnBlockEventListener
 
 	Total int64
@@ -59,7 +59,7 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	core := &SequencerCore{
 		// privateKey *ecdsa.PrivateKey
 		// privateKey: privateKey,
-		BlockChannel: make(chan Block, 5),
+		blockChannel: make(chan Block, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
 	}
@@ -67,9 +67,9 @@ func NewSequencerCore(db *sql.DB) (*SequencerCore) {
 	// Listen for new blocks.
 	go func(){
 		for {
-			block := <-core.BlockChannel
+			block := <-core.blockChannel
 			for _, list := range core.blockListeners {
-				list.handler(block)
+				go list.handler(block)
 			}
 		}
 	}()
@@ -226,7 +226,7 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 		sequenceMsg: []byte(msgData),
 	}
 
-	s.BlockChannel <- newBlock
+	s.blockChannel <- newBlock
 
 	lastId, err := res.LastInsertId()
 	if err != nil {
