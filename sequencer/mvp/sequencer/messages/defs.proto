@@ -1,0 +1,33 @@
+// 
+// Protocol Buffer message types for the sequencer.
+// 
+
+syntax = "proto3";
+option go_package = "github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages";
+
+// import "google/protobuf/timestamp.proto";
+
+message Block {
+  bytes prevBlockHash = 1;
+  SequenceTx body = 2;
+  bytes sig = 3;
+}
+
+message SequenceTx {
+  bytes from = 2;
+  bytes data = 3;
+  bytes sig = 4;
+  bytes nonce = 5;
+  repeated ExpiryCondition expires = 20;
+}
+
+message ExpiryCondition {  
+  oneof condition {
+    UNIXExpiryCondition unix = 1;
+  }
+}
+
+message UNIXExpiryCondition {
+  optional uint64 time = 1;
+}
+

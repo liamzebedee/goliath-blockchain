@@ -69,8 +69,36 @@ func (msg SequenceMessage) Signed(signer Signer) (SequenceMessage) {
 
 	return msg_signed
 }
+
 type Block struct {
 	sequenceMsg []byte
+	Sig string
+}
+
+func (block Block) SigHash() ([]byte) {
+	unsigned := block
+
+	encoded, err := json.Marshal(unsigned)
+	if err != nil {
+		panic(err)
+	}
+	hash := crypto.Keccak256Hash([]byte(encoded))
+	
+	return hash.Bytes()
+}
+
+// Returns a new SequenceMessage with a signature.
+func (block Block) Signed(signer Signer) (Block) {
+	signed := block
+	
+	signature, err := signer.Sign(block.SigHash())
+	if err != nil {
+		panic(err)
+	}
+	
+	signed.Sig = hexutil.Encode(signature)
+
+	return signed
 }
 
 func (b Block) String() string {
