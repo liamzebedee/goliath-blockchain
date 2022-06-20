@@ -66,7 +66,7 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 
 	if operatorPrivateKey != "" {
 		s.signer = utils.NewEthereumECDSASigner(operatorPrivateKey)
-		fmt.Printf("operator pubkey: %s\n", hexutil.Encode(crypto.FromECDSAPub(s.signer.GetPubkey())))
+		fmt.Printf("operator pubkey: %s\n", s.signer.String())
 	}
 
 	go s.produceBlocks()

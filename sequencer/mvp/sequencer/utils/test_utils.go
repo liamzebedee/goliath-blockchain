@@ -11,17 +11,21 @@ import (
 type Signer interface {
 	Sign(digestHash []byte) (sig []byte, err error)
 	GetPubkey() (*ecdsa.PublicKey)
+	String() string
 }
 
 
 type EthereumECDSASigner struct {
 	privateKey *ecdsa.PrivateKey
+	publicKey *ecdsa.PublicKey
 }
 
 func NewEthereumECDSASignerFromKey(privateKey *ecdsa.PrivateKey) (*EthereumECDSASigner) {
-	return &EthereumECDSASigner{
+	s := &EthereumECDSASigner{
 		privateKey: privateKey,
 	}
+	s.publicKey = s.getPubkey()
+	return s
 }
 
 func NewEthereumECDSASigner(privateKeyHex string) (*EthereumECDSASigner) {
@@ -30,9 +34,11 @@ func NewEthereumECDSASigner(privateKeyHex string) (*EthereumECDSASigner) {
 		panic(err)
 	}
 
-	return &EthereumECDSASigner{
+	s := &EthereumECDSASigner{
 		privateKey: privateKey,
 	}
+	s.publicKey = s.getPubkey()
+	return s
 }
 
 func (s *EthereumECDSASigner) Sign(digestHash []byte) (sig []byte, err error) {
@@ -40,6 +46,14 @@ func (s *EthereumECDSASigner) Sign(digestHash []byte) (sig []byte, err error) {
 }
 
 func (s *EthereumECDSASigner) GetPubkey() (*ecdsa.PublicKey) {
+	return s.publicKey
+}
+
+func (s *EthereumECDSASigner) String() (string) {
+	return hexutil.Encode(crypto.FromECDSAPub(s.publicKey))
+}
+
+func (s *EthereumECDSASigner) getPubkey() (*ecdsa.PublicKey) {
 	// TODO probably not the best way to get the pubkey.
 	badData, _ := hexutil.Decode("0xaaaa")
 	digest := crypto.Keccak256Hash(badData).Bytes()
