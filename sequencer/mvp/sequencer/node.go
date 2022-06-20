@@ -104,6 +104,10 @@ func (n *SequencerNode) Start() {
 				}()
 			}
 		})()
+
+		// Now we just need a way for the replicas to sync up to the latest block.
+		// 1. Get the latest hash from the sequencer.
+		// 2. Gossip request all of the hashes from peers.
 	}
 
 	var wg sync.WaitGroup

@@ -85,6 +85,7 @@ func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers Addr
 		host,
 		pubsub.WithPeerExchange(true),
 		pubsub.WithDirectPeers(bootstrapPeerInfos),
+		pubsub.WithFloodPublish(true),
 	)
 	if err != nil {
 		panic(err)

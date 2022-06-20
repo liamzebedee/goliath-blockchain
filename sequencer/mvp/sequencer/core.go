@@ -34,7 +34,7 @@ type SequencerCore struct {
 	
 	LastBlock *messages.Block
 
-	outOfOrderBlocks []*messages.Block
+	outOfOrderBlocks map[int64]*messages.Block
 
 	Total int64
 	// milliseconds.
@@ -83,7 +83,8 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 		sequenceTxs: make(chan *sequenceWork, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
-		outOfOrderBlocks: make([]*messages.Block, 100),
+		// outOfOrderBlocks: make([]*messages.Block, 100),
+		outOfOrderBlocks: make(map[int64]*messages.Block),
 	}
 
 	// Insert genesis block.
@@ -100,6 +101,19 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 
 	go s.sequenceRoutine()
 	go s.ingestBlockRoutine()
+
+	// Every 10ms, check blocks we've received out-of-order for future block heights.
+	// If we've processed the parent block, we process the child.
+	go func(){
+		for {
+			block := s.outOfOrderBlocks[s.LastBlock.Height]
+			if block != nil {
+				s.outOfOrderBlocks[s.LastBlock.Height] = nil
+				s.blockIngestion <- block
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 
 	return s
 }
@@ -276,7 +290,8 @@ func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 		// Block is out-of-order. 
 		// Store it for later.
 		fmt.Println("got block out-of-order:", block.PrettyString())
-		s.outOfOrderBlocks = append(s.outOfOrderBlocks, block)
+		s.outOfOrderBlocks[block.Height - 1] = block
+		// s.outOfOrderBlocks = append(s.outOfOrderBlocks, block)
 		return nil
 	}
 
