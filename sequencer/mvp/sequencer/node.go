@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
+	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 type SequencerMode uint
@@ -22,7 +23,15 @@ type SequencerNode struct {
 	Mode SequencerMode
 }
 
-func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode SequencerMode, privateKey string, bootstrapPeersStr string) (*SequencerNode) {
+func NewSequencerNode(
+	dbPath string, 
+	rpcPort string, 
+	p2pPort string, 
+	mode SequencerMode, 
+	p2pPrivateKeyRaw string, 
+	bootstrapPeersStr string, 
+	operatorPrivateKey string,
+) (*SequencerNode) {
 	// TODO: use sync=FULL for database durability during power loss.
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -34,9 +43,7 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 		panic(fmt.Errorf("couldn't connect to database: %s", err))
 	}
 
-	// TODO private key here
-	// TODO hex string remove 0x
-	seq := NewSequencerCore(db, "3977045d27df7e401ecf1596fd3ae86b59f666944f81ba8dbf547c2269902f6b")
+	seq := NewSequencerCore(db, operatorPrivateKey)
 
 	// RPC.
 	rpcAddr := fmt.Sprintf("0.0.0.0:%s", rpcPort)
@@ -49,7 +56,13 @@ func NewSequencerNode(dbPath string, rpcPort string, p2pPort string, mode Sequen
 		panic(fmt.Errorf("couldn't parse bootstrap peers: %s", err))
 	}
 
-	p2p, err := NewP2PNode(p2pAddr, privateKey, bootstrapPeers)
+	var p2pPrivateKey crypto.PrivKey
+	if p2pPrivateKeyRaw != "" {
+		p2pPrivateKey = P2PParsePrivateKey(p2pPrivateKeyRaw)
+	} else {
+		p2pPrivateKey = P2PGeneratePrivateKey()
+	}
+	p2p, err := NewP2PNode(p2pAddr, p2pPrivateKey, bootstrapPeers)
 	if err != nil {
 		panic(fmt.Errorf("couldn't create network node: %s", err))
 	}
@@ -86,7 +99,6 @@ func (n *SequencerNode) Start() {
 				} else {
 					fmt.Println("verification success for block:", block.PrettyHash())
 				}
-				
 			}
 		})()
 	}

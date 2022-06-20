@@ -13,11 +13,18 @@ type RPCNode struct {
 	httpServer http.Server
 }
 
+type SequencerService struct {
+	seq *SequencerCore
+}
+
+func (s *SequencerService) Sequence(msgData string) (int64, error) {
+	return s.seq.Sequence(msgData)
+}
 
 func NewRPCNode(addr string, seq *SequencerCore) (*RPCNode) {
 	// JSON-RPC server.
 	rpc := rpc.NewServer()
-	rpc.RegisterName("sequencer", seq)
+	rpc.RegisterName("sequencer", &SequencerService{seq})
 
 	// HTTP frontend.
 	serveMux := http.NewServeMux()

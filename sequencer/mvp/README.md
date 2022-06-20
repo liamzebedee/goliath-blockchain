@@ -41,6 +41,18 @@ PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0
 PRIVATE_KEY="" go run cmd/sequencer/main.go -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
 ```
 
+## Development.
+
+```
+(base) ➜  cmd git:(master) ✗ go run sequencer/main.go init
+Initializing a sequencer primary...
+
+Core operator private key: 0xf13edce794610d4485a1837014d4168f65135faf81219bbb837cc410391d435d
+Core operator public key: 0x04c436bb61a162f5e6c1f7b83576251d7629c7b52ca8779a2ce0400dcfb08a0a0b95733e857f287ee018fd4268597859201a2c4a87f90a533c70c793512d44867e
+P2P multiaddr: /ip4/192.168.1.189/tcp/24445/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K
+P2P private key: 0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484
+```
+
 ## Benchmarking.
 
 ```sh

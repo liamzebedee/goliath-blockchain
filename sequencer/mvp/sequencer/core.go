@@ -41,7 +41,7 @@ type SequencerCore struct {
 	LastSequenceTime int64
 }
 
-func NewSequencerCore(db *sql.DB, privateKeyHex string) (*SequencerCore) {
+func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 	fmt.Println("migrating database")
 	
 	// TODO: handle migation errors
@@ -60,10 +60,13 @@ func NewSequencerCore(db *sql.DB, privateKeyHex string) (*SequencerCore) {
 	// }
 
 	core := &SequencerCore{
-		signer: utils.NewEthereumECDSASigner(privateKeyHex),
 		blockChannel: make(chan *messages.Block, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
+	}
+
+	if operatorPrivateKey != "" {
+		core.signer = utils.NewEthereumECDSASigner(operatorPrivateKey)
 	}
 
 	// Listen for new blocks.
@@ -104,7 +107,7 @@ func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {
 }
 
 func (s *SequencerCore) GetOperatorPubkey() ([]byte) {
-	return hexutil.MustDecode("0x0466724a07b5fc7937b0a5ef42d9d25b496958426e2d36c69e44e7e33c0b1f835e29127894ac9183a8f9353e78bd2a0b2667c23ae1ec88b4e6f9ba18b2854465aa")
+	return hexutil.MustDecode("0x04c436bb61a162f5e6c1f7b83576251d7629c7b52ca8779a2ce0400dcfb08a0a0b95733e857f287ee018fd4268597859201a2c4a87f90a533c70c793512d44867e")
 }
 
 func (s *SequencerCore) Close() {
@@ -246,6 +249,10 @@ func (s *SequencerCore) verifySequenceMessage(msg *messages.SequenceTx, checkUni
 
 // Assigns a sequence number for the transaction.
 func (s *SequencerCore) Sequence(msgData string) (int64, error) {
+	if (s.signer == nil) {
+		return 0, fmt.Errorf("sequencer is in replica mode, does not sequence itself")
+	}
+	
 	msg := &messages.SequenceTx{}
 
 	msgBuf, err := hexutil.Decode(msgData)

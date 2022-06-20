@@ -21,15 +21,15 @@ func generateMockSequenceTx(signer utils.Signer, nonce int) (*messages.SequenceT
 
 func main() {
 	// Create primary node.
-	primary := sequencer.NewSequencerNode("file::memory:?cache=shared", "49000", "49001", sequencer.PrimaryMode, "0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0d92de17f7858dd065ece3d57a79a48b203664a63c356fb53c2dd3c5ce6a92aca4ebc39", "")
+	primary := sequencer.NewSequencerNode("file::memory:?cache=shared", "49000", "49001", sequencer.PrimaryMode, "0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484", "", "7345f1ef889724e400fedd3822f45fca1cfb09c1176c8538c9243b4b2461bec3")
 
 	// Create 5 replicas.
 	replicas := make([]*sequencer.SequencerNode, 5)
-	replicas[0] = sequencer.NewSequencerNode(":memory:", "49100", "49101", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
-	replicas[1] = sequencer.NewSequencerNode(":memory:", "49200", "49201", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
-	replicas[2] = sequencer.NewSequencerNode(":memory:", "49300", "49301", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
-	replicas[3] = sequencer.NewSequencerNode(":memory:", "49400", "49401", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
-	replicas[4] = sequencer.NewSequencerNode(":memory:", "49500", "49501", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt")
+	replicas[0] = sequencer.NewSequencerNode(":memory:", "49100", "49101", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K", "")
+	replicas[1] = sequencer.NewSequencerNode(":memory:", "49200", "49201", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K", "")
+	replicas[2] = sequencer.NewSequencerNode(":memory:", "49300", "49301", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K", "")
+	replicas[3] = sequencer.NewSequencerNode(":memory:", "49400", "49401", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K", "")
+	replicas[4] = sequencer.NewSequencerNode(":memory:", "49500", "49501", sequencer.ReplicaMode, "", "/ip4/127.0.0.1/tcp/49001/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMDCtxiffWTTM3mhTXgfw2K", "")
 
 	// Wait until they're connected for the test.
 	waitConnectedP2P := make(chan bool)

@@ -18,6 +18,12 @@ type EthereumECDSASigner struct {
 	privateKey *ecdsa.PrivateKey
 }
 
+func NewEthereumECDSASignerFromKey(privateKey *ecdsa.PrivateKey) (*EthereumECDSASigner) {
+	return &EthereumECDSASigner{
+		privateKey: privateKey,
+	}
+}
+
 func NewEthereumECDSASigner(privateKeyHex string) (*EthereumECDSASigner) {
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {

@@ -1,0 +1,1 @@
+PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0d92de17f7858dd065ece3d57a79a48b203664a63c356fb53c2dd3c5ce6a92aca4ebc39 go run cmd/sequencer/main.go -db-path tmp/db -mode primary

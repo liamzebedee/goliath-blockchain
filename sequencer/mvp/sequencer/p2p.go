@@ -30,31 +30,34 @@ type P2PNode struct {
 	newBlocks *pubsub.Topic
 }
 
+func P2PGeneratePrivateKey() (crypto.PrivKey) {
+	privateKey, _, err := crypto.GenerateKeyPair(
+		crypto.Ed25519,
+		-1,
+	)
+	if err != nil {
+		panic(err)
+	}
 
+	return privateKey
+}
 
-func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList) (*P2PNode, error) {
-	var privateKey crypto.PrivKey
-	var err error
+func P2PParsePrivateKey(raw string) (crypto.PrivKey) {
+	privateKeyBytes, err := hexutil.Decode(raw)
+	if err != nil {
+		panic(err)
+	}
 
-	if privateKeyRaw == "" {
-		privateKey, _, err = crypto.GenerateKeyPair(
-			crypto.Ed25519, // Select your key type. Ed25519 are nice short
-			-1,             // Select key length when possible (i.e. RSA).
-		)
-		if err != nil {
-			panic(err)
-		}
+	privateKey, err := crypto.UnmarshalPrivateKey(privateKeyBytes)
+	if err != nil {
+		panic(err)
+	}
+	return privateKey
+}
 
-	} else {
-		privateKeyBytes, err := hexutil.Decode(privateKeyRaw)
-		if err != nil {
-			panic(err)
-		}
-
-		privateKey, err = crypto.UnmarshalPrivateKey(privateKeyBytes)
-		if err != nil {
-			panic(err)
-		}
+func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers AddrList) (*P2PNode, error) {
+	if privateKey == nil {
+		privateKey = P2PGeneratePrivateKey()
 	}
 
 	host, err := libp2p.New(
@@ -63,18 +66,6 @@ func NewP2PNode(multiaddr string, privateKeyRaw string, bootstrapPeers AddrList)
 	)
 	if err != nil {
 		panic(err)
-	}
-
-	// Debug log on first setup.
-	init := true
-	if init {
-		rawkey, err := crypto.MarshalPrivateKey(privateKey)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Printf("P2P multiaddr: %s/p2p/%s\n", host.Addrs()[0], host.ID())
-		fmt.Printf("P2P private key: %s\n", hexutil.Encode(rawkey))
 	}
 
 	ctx := context.Background()
