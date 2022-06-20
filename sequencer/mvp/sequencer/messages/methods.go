@@ -57,7 +57,7 @@ func generateNonce() []byte {
 	nonce := make([]byte, 32)
 	_, err := rand.Read(nonce)
 	if err != nil {
-		panic(fmt.Errorf("error generating random data for nonce:", err))
+		panic(fmt.Errorf("error generating random data for nonce: %s", err))
 	}
 	return nonce
 }
@@ -95,24 +95,6 @@ func ConstructBlock(prevBlockHash []byte, sequenceMessage *SequenceTx) (*Block) 
 	return block
 }
 
-func (block *Block) PrettyString() string {
-	var bodyStr string = ""
-	if body := block.GetBody(); body != nil {
-		bodyStr = hexutil.Encode(body.SigHash())
-	}
-
-	return fmt.Sprintf(
-		"block [hash=%s prev=%s seq_tx=%s]", 
-		hexutil.Encode(block.SigHash()),
-		hexutil.Encode(block.PrevBlockHash),
-		bodyStr,	
-	)
-}
-
-func (block *Block) PrettyHash() string {
-	return hexutil.Encode(block.SigHash())
-}
-
 func (block *Block) SigHash() ([]byte) {
 	unsigned := proto.Clone(block).(*Block)
 	unsigned.Sig = []byte{}
@@ -135,4 +117,22 @@ func (block *Block) Signed(signer utils.Signer) (*Block) {
 	signed := proto.Clone(block).(*Block)
 	signed.Sig = signature
 	return signed
+}
+
+func (block *Block) PrettyString() string {
+	var bodyStr string = ""
+	if body := block.GetBody(); body != nil {
+		bodyStr = hexutil.Encode(body.SigHash())
+	}
+
+	return fmt.Sprintf(
+		"block [hash=%s prev=%s seq_tx=%s]", 
+		hexutil.Encode(block.SigHash()),
+		hexutil.Encode(block.PrevBlockHash),
+		bodyStr,	
+	)
+}
+
+func (block *Block) PrettyHash() string {
+	return hexutil.Encode(block.SigHash())
 }

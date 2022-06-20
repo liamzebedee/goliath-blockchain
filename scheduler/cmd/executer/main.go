@@ -98,6 +98,9 @@ func main() {
 	// For each block, we check if there were txs.
 	// If there were, we load them from state.
 
+	// Now we have all of the blocks with txs, fetch them in parallel.
+	
+
 
 
 	fmt.Println("Hey", lastHeight)

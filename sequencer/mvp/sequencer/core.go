@@ -26,7 +26,6 @@ type OnBlockEventListener struct {
 	handler onBlockFn
 }
 
-
 type SequencerCore struct {
 	signer utils.Signer
 	db *sql.DB
@@ -59,35 +58,37 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 	// 	panic(err)
 	// }
 
-	core := &SequencerCore{
+	s := &SequencerCore{
 		blockChannel: make(chan *messages.Block, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
 		db: db,
 	}
 
 	if operatorPrivateKey != "" {
-		core.signer = utils.NewEthereumECDSASigner(operatorPrivateKey)
+		s.signer = utils.NewEthereumECDSASigner(operatorPrivateKey)
+		fmt.Printf("operator pubkey: %s\n", hexutil.Encode(crypto.FromECDSAPub(s.signer.GetPubkey())))
 	}
 
-	// Listen for new blocks.
-	go func(){
-		for {
-			block := <-core.blockChannel
+	go s.produceBlocks()
 
-			// TODO rename + refactor.
-			// Sign each block.
-			block = block.Signed(core.signer)
-			block.PrevBlockHash = core.getLastBlockHash()
-			core.lastBlock = block
-			fmt.Println("chained a block:", block.PrettyString())
+	return s
+}
 
-			for _, list := range core.blockListeners {
-				go list.handler(block)
-			}
+func (s *SequencerCore) produceBlocks() {
+	for {
+		// Process blocks serially.
+		block := <-s.blockChannel
+
+		// Sign each block.
+		block.PrevBlockHash = s.getLastBlockHash()
+		block = block.Signed(s.signer)
+		s.lastBlock = block
+		
+		fmt.Println("chained a block:", block.PrettyString())
+		for _, list := range s.blockListeners {
+			go list.handler(block)
 		}
-	}()
-
-	return core
+	}
 }
 
 func (s *SequencerCore) getLastBlockHash() ([]byte) {
@@ -107,7 +108,7 @@ func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {
 }
 
 func (s *SequencerCore) GetOperatorPubkey() ([]byte) {
-	return hexutil.MustDecode("0x04c436bb61a162f5e6c1f7b83576251d7629c7b52ca8779a2ce0400dcfb08a0a0b95733e857f287ee018fd4268597859201a2c4a87f90a533c70c793512d44867e")
+	return hexutil.MustDecode("0x043e0b751273070a517b4c54393deb672e75a6d9dd731bd0b90f11bb178343dc2084ac3c86e289d0902fe40fbb7bb24efd2a342a95220347ed7cedd0dd19d629f5")
 }
 
 func (s *SequencerCore) Close() {
@@ -123,6 +124,10 @@ func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 	// 
 	// Verify block.
 	// 
+
+	if block.Sig == nil {
+		return fmt.Errorf("missing signature")
+	}
 
 	// Compute the digest which was signed, aka the "sighash".
 	digestHash := block.SigHash()
@@ -291,7 +296,7 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	}
 
 	// Now chain a block.
-	block := messages.ConstructBlock(s.getLastBlockHash(), msg)
+	block := messages.ConstructBlock([]byte{}, msg)
 	s.blockChannel <- block
 
 	return lastId, nil
