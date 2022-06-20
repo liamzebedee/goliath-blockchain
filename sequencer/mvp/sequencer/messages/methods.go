@@ -85,9 +85,9 @@ func ConstructSequenceMessage(txData string, expiresIn time.Duration) (*Sequence
 
 // Now for the block.
 
-func ConstructBlock(prevBlockHash []byte, sequenceMessage *SequenceTx) (*Block) {
+func ConstructBlock(sequenceMessage *SequenceTx) (*Block) {
 	block := &Block{
-		PrevBlockHash: prevBlockHash,
+		PrevBlockHash: []byte{},
 		Body: sequenceMessage,
 		Sig: []byte{},
 	}
@@ -126,7 +126,8 @@ func (block *Block) PrettyString() string {
 	}
 
 	return fmt.Sprintf(
-		"block [hash=%s prev=%s seq_tx=%s]", 
+		"block [height=%d hash=%s prev=%s seq_tx=%s]", 
+		block.Height,
 		hexutil.Encode(block.SigHash()),
 		hexutil.Encode(block.PrevBlockHash),
 		bodyStr,	

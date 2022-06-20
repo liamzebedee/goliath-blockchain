@@ -88,17 +88,20 @@ func (n *SequencerNode) Start() {
 	if n.Mode == ReplicaMode {
 		receiveBlockChan := make(chan *messages.Block, 1) // TODO event handler here
 		go n.P2P.ListenForNewBlocks(receiveBlockChan)
+		
 		go (func(){
 			for {
 				block := <-receiveBlockChan
 				
 				fmt.Println("verifying block:", block.PrettyHash())
-				err := n.Seq.ProcessBlock(block)
-				if err != nil {
-					fmt.Println("error while verifying block", block.PrettyHash(), ":", err)
-				} else {
-					fmt.Println("verification success for block:", block.PrettyHash())
-				}
+				go func(){
+					err := n.Seq.ProcessBlock(block)
+					if err != nil {
+						fmt.Println("error while verifying block", block.PrettyHash(), ":", err)
+					} else {
+						fmt.Println("verification success for block:", block.PrettyHash())
+					}
+				}()
 			}
 		})()
 	}

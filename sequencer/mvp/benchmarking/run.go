@@ -21,7 +21,7 @@ func generateMockSequenceTx(signer utils.Signer, nonce int) (*messages.SequenceT
 
 func main() {
 	// Configuration.
-	numReplicas := 1
+	numReplicas := 15
 	numSequenceTxs := 3
 
 	// Create primary node.
@@ -42,6 +42,7 @@ func main() {
 	
 	// Wait until they're connected for the test.
 	waitConnectedP2P := make(chan bool)
+	numPeersToWaitForConnected := numReplicas
 	go func() {
 		i := 0
 		host := primary.P2P.Host
@@ -51,7 +52,7 @@ func main() {
 			fmt.Printf("waiting for connections (%d): %s\n", i, conns)
 			i++
 			
-			if len(conns) > 0 {
+			if len(conns) >= numPeersToWaitForConnected  {
 				waitConnectedP2P <- true
 				break
 			}
@@ -88,7 +89,14 @@ func main() {
 	}
 
 	wait := make(chan bool)
+	go func(){
+		time.Sleep(6 * time.Second)
+		wait <- true
+	}()
+
 	<-wait
-	// Test the pubsub.
-	// time.Sleep(10 * time.Second)
+
+	for i, rep := range(replicas) {
+		fmt.Printf("seq #%3d: lastBlock=%d\n", i, rep.Seq.LastBlock.Height)
+	}
 }

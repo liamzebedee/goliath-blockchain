@@ -15,7 +15,7 @@ func TestBlockSigned(t *testing.T) {
 	// 0x043e0b751273070a517b4c54393deb672e75a6d9dd731bd0b90f11bb178343dc2084ac3c86e289d0902fe40fbb7bb24efd2a342a95220347ed7cedd0dd19d629f5
 	signer := utils.NewEthereumECDSASigner("3fd7f88cb790c6a8b54d4e1aaebba6775f427bb8fa2276e933b7c3440f164caa")
 	sequenceMessage := ConstructSequenceMessage("0x0001", 0)
-	block := ConstructBlock([]byte{}, sequenceMessage)
+	block := ConstructBlock(sequenceMessage)
 	
 	signed_block := block.Signed(signer)
 	assert.Len(t, block.Sig, 0, "Sig is not set")
