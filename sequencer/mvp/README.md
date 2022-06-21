@@ -18,9 +18,9 @@ The primary signs every new sequenced tx, and can be punished for equivocation (
 
 ## RPC methods.
 
-sequencer_append
-sequencer_read
-sequencer_info
+ - sequencer_append
+ - sequencer_read
+ - sequencer_info
 
 ## Usage.
 

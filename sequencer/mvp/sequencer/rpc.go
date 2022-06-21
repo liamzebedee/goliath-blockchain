@@ -17,7 +17,7 @@ type SequencerService struct {
 	seq *SequencerCore
 }
 
-func (s *SequencerService) Sequence(msgData string) (int64, error) {
+func (s *SequencerService) Append(msgData string) (int64, error) {
 	return s.seq.Sequence(msgData)
 }
 

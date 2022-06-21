@@ -131,7 +131,7 @@ func simulate(numReplicas, numSequenceTxs int, waitDuration time.Duration) {
 			// _, err := primary.Seq.Sequence(msg.ToHex())
 
 			var res interface{}
-			err = rpcclient.Call(res, "sequencer_sequence", msg.ToHex())
+			err = rpcclient.Call(res, "sequencer_append", msg.ToHex())
 
 			if err != nil {
 				log.Fatal(err)
