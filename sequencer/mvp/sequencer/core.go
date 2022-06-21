@@ -27,18 +27,16 @@ type OnBlockEventListener struct {
 type SequencerCore struct {
 	signer utils.Signer
 	db *sql.DB
-
-	sequenceTxs chan *sequenceWork
-	blockIngestion chan *messages.Block
-	blockListeners []*OnBlockEventListener
 	
-	LastBlock *messages.Block
+	sequenceTxs chan *sequenceWork
+	
+	blockIngestion chan *messages.Block
 
+	outOfOrderBlockChan chan *messages.Block
 	outOfOrderBlocks map[int64]*messages.Block
-
-	Total int64
-	// milliseconds.
-	LastSequenceTime int64
+	LastBlock *messages.Block
+	TotalSeen int
+	blockListeners []*OnBlockEventListener
 }
 
 type operatorChange struct {
@@ -82,6 +80,7 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 		blockIngestion: make(chan *messages.Block, 5),
 		sequenceTxs: make(chan *sequenceWork, 5),
 		blockListeners: make([]*OnBlockEventListener, 0),
+		outOfOrderBlockChan: make(chan *messages.Block, 20),
 		db: db,
 		// outOfOrderBlocks: make([]*messages.Block, 100),
 		outOfOrderBlocks: make(map[int64]*messages.Block),
@@ -101,25 +100,46 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 
 	go s.sequenceRoutine()
 	go s.ingestBlockRoutine()
-
-	// Every 10ms, check blocks we've received out-of-order for future block heights.
-	// If we've processed the parent block, we process the child.
-	go func(){
-		for {
-			block := s.outOfOrderBlocks[s.LastBlock.Height]
-			if block != nil {
-				s.outOfOrderBlocks[s.LastBlock.Height] = nil
-				s.blockIngestion <- block
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
+	go s.checkOutOfOrderBlocks()
 
 	return s
 }
 
 type sequenceWork struct {
 	msg *messages.SequenceTx
+}
+
+func (s *SequencerCore) WaitedBlocks(max int64) (int64) {
+	for height := s.LastBlock.Height; height < max; height++ {
+		b := s.outOfOrderBlocks[height]
+		if b != nil {
+			return height
+		}
+		// s.outOfOrderBlocks[block.Height - 1] = block
+	}
+	return -1
+}
+
+func (s *SequencerCore) checkOutOfOrderBlocks() {
+	// Every 10ms, check blocks we've received out-of-order for future block heights.
+	// If we've processed the parent block, we process the child.
+	for {
+		select {
+		case block := <-s.outOfOrderBlockChan:
+			// Maps the out-of-order block to the block height which satisfies it.
+			s.outOfOrderBlocks[block.Height - 1] = block
+			break
+		default:
+			block := s.outOfOrderBlocks[s.LastBlock.Height]
+			delete(s.outOfOrderBlocks, s.LastBlock.Height)
+
+			if block != nil {
+				s.blockIngestion <- block
+			}
+
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
 }
 
 func (s *SequencerCore) sequenceRoutine() (error) {
@@ -285,12 +305,13 @@ func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 		// We have already processed up to this block height.
 		return nil
 	}
+	s.TotalSeen += 1
 	// TODO memoize sighash here.
 	if !bytes.Equal(block.PrevBlockHash, s.LastBlock.SigHash()) {
 		// Block is out-of-order. 
 		// Store it for later.
 		fmt.Println("got block out-of-order:", block.PrettyString())
-		s.outOfOrderBlocks[block.Height - 1] = block
+		s.outOfOrderBlockChan <- block
 		// s.outOfOrderBlocks = append(s.outOfOrderBlocks, block)
 		return nil
 	}
@@ -416,20 +437,20 @@ func (s *SequencerCore) Get(from, to uint64) (int, error) {
 	return 1, nil
 }
 
+// Returns the blocks between index `from` and `to`.
+func (s *SequencerCore) GetBlocks(from, to uint64) (int, error) {
+	return 1, nil
+}
+
 type SequencerInfo struct {
 	Total int64            `json:"total"`
-	// milliseconds.
-	LastSequenceTime int64 `json:"lastSequenceTime"`
+	LastSequenceTime int64 `json:"lastSequenceTime"` // milliseconds.
 }
 
 // Get the sequencer info.
 // - total number of sequenced txs.
 // - latest received tx time.
 func (s *SequencerCore) Info() (SequencerInfo, error) {
-	// info := make(map[string]interface{})
-	// info["total"] = 2
-	// info["latest"] = 21
-
 	info := SequencerInfo{
 		Total: 0,
 		LastSequenceTime: 0,

@@ -3,6 +3,7 @@ package sequencer
 import (
 	"context"
 	"fmt"
+	"time"
 
 	// "sync"
 	// discovery "github.com/libp2p/go-libp2p-discovery"
@@ -22,12 +23,14 @@ import (
 
 var logger = log.Logger("p2p")
 const DHT_RENDEZVOUS_MAGIC = "goliath/sequencer/queen-st-hungry-jacks"
-const PUBSUB_TOPIC_NEW_BLOCKS = "newblocks"
+const PUBSUB_TOPIC_NEW_BLOCKS = "NewBlocks"
+const PUBSUB_TOPIC_PEER_DISCOVERY = "PeerDiscovery"
 
 type P2PNode struct {
 	Host libp2pHost.Host
 	ctx context.Context
 	newBlocks *pubsub.Topic
+	peerDiscovery *pubsub.Topic
 }
 
 func P2PGeneratePrivateKey() (crypto.PrivKey) {
@@ -80,19 +83,50 @@ func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers Addr
 		bootstrapPeerInfos = append(bootstrapPeerInfos, *peerinfo)
 	}
 
-	pubsub, err := pubsub.NewGossipSub(
-		ctx, 
+	// Gossip Sub.
+	// 
+	// gossipSubParams := pubsub.DefaultGossipSubParams()
+	// gossipSubParams.D = 2
+	// gossipSubParams.MaxIHaveLength = 30000
+	
+	// pubsub, err := pubsub.NewGossipSub(
+	// 	ctx, 
+	// 	host,
+	// 	pubsub.WithPeerExchange(true),
+	// 	pubsub.WithDirectPeers(bootstrapPeerInfos),
+	// 	// pubsub.WithGossipSubParams(gossipSubParams),
+	// 	// pubsub.WithFloodPublish(true),
+	// )
+
+	// Much simpler model.
+	// It's a federated hub-n-spoke network.
+	// The sequencer streams txs to 16 replicas.
+	// Which stream to 16 more replicas.
+	// 16*16=256 replicas
+
+	pubsub, err := pubsub.NewFloodSub(
+		ctx,
 		host,
-		pubsub.WithPeerExchange(true),
-		pubsub.WithDirectPeers(bootstrapPeerInfos),
-		pubsub.WithFloodPublish(true),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	// join the pubsub topic
+	// Connect to bootstrap peers.
+	for _, peerinfo := range(bootstrapPeerInfos) {
+		err = host.Connect(context.Background(), peerinfo)
+		if err != nil {
+			fmt.Printf("error connecting to peer %s: %s\n", peerinfo.ID.Pretty(), err)
+		}
+	}
+
+	// Join the pubsub topics.
 	newBlocks, err := pubsub.Join(topicName(PUBSUB_TOPIC_NEW_BLOCKS))
+	if err != nil {
+		return nil, err
+	}
+
+	peerDiscovery, err := pubsub.Join(topicName(PUBSUB_TOPIC_PEER_DISCOVERY))
 	if err != nil {
 		return nil, err
 	}
@@ -101,16 +135,17 @@ func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers Addr
 		Host: host,
 		ctx: ctx,
 		newBlocks: newBlocks,
+		peerDiscovery: peerDiscovery,
 	}
-
-	// discover peers for pubsub.
-	// startDHT(host, bootstrapPeers, DHT_RENDEZVOUS_MAGIC, node)
-
+	
 	return node, nil
 }
 
 func (n *P2PNode) Start() {
 	fmt.Printf("P2P listening on %s\n", n.Host.Addrs()[0])
+
+	go n.BroadcastPresenceRoutine()
+	go n.ListenForNewPeers()
 }
 
 // discoveryNotifee gets notified when we find a new peer
@@ -118,10 +153,14 @@ func (n *P2PNode) Start() {
 // the PubSub system will automatically start interacting with them if they also
 // support PubSub.
 func (n *P2PNode) HandlePeerFound(peerinfo peer.AddrInfo) {
-	fmt.Printf("discovered new peer %s\n", peerinfo.ID.Pretty())
-	
+	isConnectedToPeer := len(n.Host.Peerstore().Addrs(peerinfo.ID)) > 0
+	if isConnectedToPeer {
+		return
+	}
+
+	fmt.Printf("connecting to new peer %s\n", peerinfo.ID.Pretty())
 	err := n.Host.Connect(context.Background(), peerinfo)
-	// n.host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, 300 * time.Second)
+
 	if err != nil {
 		fmt.Printf("error connecting to peer %s: %s\n", peerinfo.ID.Pretty(), err)
 	}
@@ -131,14 +170,20 @@ func (n *P2PNode) GossipNewBlock(block *messages.Block) {
 	buf, err := proto.Marshal(block)
 	if err != nil {
 		// TODO: robust error handling?
-		panic(fmt.Errorf("error encoding block:", err))
+		panic(fmt.Errorf("error encoding block: %s", err))
 	}
 
-	n.newBlocks.Publish(n.ctx, buf)
+	fmt.Println("pubsub - gossip block:", block.PrettyHash())
+	err = n.newBlocks.Publish(n.ctx, buf)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error gossipping new block: %s", err))
+	}
 }
 
-func (n *P2PNode) ListenForNewBlocks(newBlockChan chan *messages.Block) {
-	sub, err := n.newBlocks.Subscribe()
+func (n *P2PNode) ListenForNewBlocks(handler func(block *messages.Block)) {
+	sub, err := n.newBlocks.Subscribe(
+		pubsub.WithBufferSize(30000),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -146,7 +191,7 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan *messages.Block) {
 	for {
 		msg, err := sub.Next(n.ctx)
 		if err != nil {
-			close(newBlockChan)
+			// close(newBlockChan)
 			return
 		}
 
@@ -154,20 +199,50 @@ func (n *P2PNode) ListenForNewBlocks(newBlockChan chan *messages.Block) {
 		proto.Unmarshal(msg.Data, block)
 
 		fmt.Printf("pubsub - new block: %s\n", block.PrettyHash())
-		newBlockChan <- block
+		handler(block)
+	}
+}
 
-		// only forward messages delivered by others
-		// if msg.ReceivedFrom == cr.self {
-		// 	continue
-		// }
+func (n *P2PNode) BroadcastPresenceRoutine() {
+	peerinfo := &peer.AddrInfo{
+		ID: n.Host.ID(),
+		Addrs: n.Host.Addrs(),
+	}
+	buf, err := peerinfo.MarshalJSON()
+	if err != nil {
+		panic(fmt.Errorf("error serialising my peerinfo: %s", err))
+	}
 
-		// cm := new(ChatMessage)
-		// err = json.Unmarshal(msg.Data, cm)
-		// if err != nil {
-		// 	continue
-		// }
-		// // send valid messages onto the Messages channel
-		// cr.Messages <- cm
+	for {
+		n.peerDiscovery.Publish(n.ctx, buf)
+
+		// TODO, only republish info when numpeers falls below level or at random interval,
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func (n *P2PNode) ListenForNewPeers() {
+	sub, err := n.peerDiscovery.Subscribe()
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		msg, err := sub.Next(n.ctx)
+		if err != nil {
+			panic(fmt.Errorf("error in ListenForNewPeers: %s", err))
+			return
+		}
+
+		peerinfo := &peer.AddrInfo{}
+		err = peerinfo.UnmarshalJSON(msg.Data)
+		if err != nil {
+			fmt.Println(fmt.Errorf("error reading peerinfo gossip: %s", err))
+			continue
+		}
+
+		fmt.Printf("pubsub - peerinfo gossip: %s\n", peerinfo.String())
+		n.HandlePeerFound(*peerinfo)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -86,28 +87,58 @@ func (n *SequencerNode) Start() {
 	}
 
 	if n.Mode == ReplicaMode {
-		receiveBlockChan := make(chan *messages.Block, 1) // TODO event handler here
-		go n.P2P.ListenForNewBlocks(receiveBlockChan)
+		go n.P2P.ListenForNewBlocks(func (block *messages.Block) {
+			fmt.Println("verifying block:", block.PrettyHash())
+			go func(){
+				err := n.Seq.ProcessBlock(block)
+				if err != nil {
+					fmt.Println("error while verifying block", block.PrettyHash(), ":", err)
+				} else {
+					fmt.Println("verification success for block:", block.PrettyHash())
+				}
+			}()
+		})
 		
-		go (func(){
-			for {
-				block := <-receiveBlockChan
-				
-				fmt.Println("verifying block:", block.PrettyHash())
-				go func(){
-					err := n.Seq.ProcessBlock(block)
-					if err != nil {
-						fmt.Println("error while verifying block", block.PrettyHash(), ":", err)
-					} else {
-						fmt.Println("verification success for block:", block.PrettyHash())
+		if false {
+			go func(){
+				fmt.Println("P2P: bootstrapping P2P connections...")
+
+				// Wait until they're connected for the test.
+				waitConnectedP2P := make(chan bool)
+				numPeersToWaitForConnected := 3
+				go func() {
+					i := 0
+					host := n.P2P.Host
+
+					for true {
+						peers := host.Network().Peers()
+						fmt.Printf("waiting for connections (%2d): num_peers=%d\n", i, len(peers))
+						i++
+						
+						if len(peers) >= numPeersToWaitForConnected  {
+							waitConnectedP2P <- true
+							break
+						}
+
+						time.Sleep(1000 * time.Millisecond)
 					}
 				}()
-			}
-		})()
+
+				<-waitConnectedP2P
+				fmt.Println("P2P: sufficiently connected!")
+			}()
+		}
 
 		// Now we just need a way for the replicas to sync up to the latest block.
 		// 1. Get the latest hash from the sequencer.
 		// 2. Gossip request all of the hashes from peers.
+		go func(){
+			// Fetch 1000 blocks at a time.
+			// What do we do? 
+			// Message "IWANT" to the P2P network.
+			// Select peers.
+			// Literally you want a DHT-like routing mechanism for this.
+		}()
 	}
 
 	var wg sync.WaitGroup
@@ -123,6 +154,13 @@ func (n *SequencerNode) Start() {
 		}()
 	}()
 	wg.Wait()
+}
+
+// Starts the routine to fetch missing block history.
+// The pubsub network is used for disseminating new blocks only.
+// Replicas sync blocks they've missed by requesting history from peers.
+func (n *SequencerNode) FetchHistory() {
+
 }
 
 func (n *SequencerNode) Close() {

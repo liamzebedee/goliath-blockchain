@@ -21,6 +21,11 @@ func (s *SequencerService) Sequence(msgData string) (int64, error) {
 	return s.seq.Sequence(msgData)
 }
 
+// Returns the blocks between index `from` and `to`.
+func (s *SequencerService) GetBlocks(from, to uint64) (int, error) {
+	return s.seq.GetBlocks(from, to)
+}
+
 func NewRPCNode(addr string, seq *SequencerCore) (*RPCNode) {
 	// JSON-RPC server.
 	rpc := rpc.NewServer()
