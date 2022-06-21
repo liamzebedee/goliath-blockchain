@@ -32,3 +32,12 @@ message UNIXExpiryCondition {
   uint64 time = 1;
 }
 
+
+
+message SequencerPrimaryAdvertisement {
+  bytes multiaddress = 1;
+}
+
+message P2PMessage {
+  Block block = 1;
+}

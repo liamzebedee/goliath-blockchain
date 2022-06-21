@@ -25,25 +25,21 @@ sequencer_info
 ## Usage.
 
 ```sh
-# Generate a private key.
-node -e "console.log(require('ethers').Wallet.createRandom().privateKey)"
-# 0xd96a6cca804b24f540dc41ac3f50e2acd7510c33662c3040bafc07bc95b035ed
-
 ./scripts/build.sh
 
 # Make a directory for data.
 mkdir tmp
 
 # Run the sequencer primary.
-PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0d92de17f7858dd065ece3d57a79a48b203664a63c356fb53c2dd3c5ce6a92aca4ebc39 go run cmd/sequencer/main.go -dbpath tmp/db -mode primary
+PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0d92de17f7858dd065ece3d57a79a48b203664a63c356fb53c2dd3c5ce6a92aca4ebc39 ./cmd/sequencer/sequencer start -dbpath tmp/db -mode primary
 
 # Run a sequencer replica.
-PRIVATE_KEY="" go run cmd/sequencer/main.go -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
+PRIVATE_KEY="" ./cmd/sequencer/sequencer start -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
 ```
 
 ## Development.
 
-```
+```sh
 (base) ➜  cmd git:(master) ✗ go run sequencer/main.go init
 Initializing a sequencer primary...
 
@@ -53,11 +49,22 @@ P2P multiaddr: /ip4/192.168.1.189/tcp/24445/p2p/12D3KooWLMmULYCrke9PiATTDTmE4pMD
 P2P private key: 0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484
 ```
 
+```sh
+PRIVATE_KEY="" go run cmd/sequencer/main.go start -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
+```
+
 ## Benchmarking.
 
 ```sh
+# macOS users need to do this, as the benchmark uses over 1000 open files.
+ulimit -S -n 10000
+
+# Run an external sequencer node.
+PRIVATE_KEY="0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484" OPERATOR_PRIVATE_KEY="3fd7f88cb790c6a8b54d4e1aaebba6775f427bb8fa2276e933b7c3440f164caa" go run cmd/sequencer/main.go start -dbpath "" -mode primary -peers "" -rpcport 49000 -p2pport 49001
+
+# Now run the benchmarks.
 cd benchmarking
-go run run.go
+GOLOG_LOG_LEVEL=info go run run.go
 ```
 
 ## Philosophy.

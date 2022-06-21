@@ -1,0 +1,28 @@
+
+The main problem is with messaages being dropped in the P2P PubSub protocol
+due to the throughput of the sequencer.
+
+These benchmarks were run on my Mac M1, with 16 replicas, and 10K TPS.
+
+At these levels, Gossipsub seems to miss at least one message.
+Floodsub doesn't, which makes sense since it's more redundant. 
+
+See:
+
+seq #  0: lastBlock=10000 waitingOn=   -1 totalBlocks=12882 n_peers=  1
+seq #  1: lastBlock=10000 waitingOn=   -1 totalBlocks=12808 n_peers=  1
+seq #  2: lastBlock=10000 waitingOn=   -1 totalBlocks=12823 n_peers=  1
+seq #  3: lastBlock=10000 waitingOn=   -1 totalBlocks=12791 n_peers=  1
+seq #  4: lastBlock=10000 waitingOn=   -1 totalBlocks=12854 n_peers=  1
+seq #  5: lastBlock=10000 waitingOn=   -1 totalBlocks=12898 n_peers=  1
+seq #  6: lastBlock=10000 waitingOn=   -1 totalBlocks=12881 n_peers=  1
+seq #  7: lastBlock=10000 waitingOn=   -1 totalBlocks=12821 n_peers=  1
+seq #  8: lastBlock=10000 waitingOn=   -1 totalBlocks=12865 n_peers=  1
+seq #  9: lastBlock=10000 waitingOn=   -1 totalBlocks=12870 n_peers=  1
+seq # 10: lastBlock=10000 waitingOn=   -1 totalBlocks=12886 n_peers=  1
+seq # 11: lastBlock=10000 waitingOn=   -1 totalBlocks=12837 n_peers=  1
+seq # 12: lastBlock=10000 waitingOn=   -1 totalBlocks=12868 n_peers=  1
+seq # 13: lastBlock=10000 waitingOn=   -1 totalBlocks=12878 n_peers=  1
+seq # 14: lastBlock=10000 waitingOn=   -1 totalBlocks=12876 n_peers=  1
+seq # 15: lastBlock=10000 waitingOn=   -1 totalBlocks=12902 n_peers=  1
+Core info

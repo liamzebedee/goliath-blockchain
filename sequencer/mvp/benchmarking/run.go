@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
 	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
@@ -27,8 +28,9 @@ func main() {
 	// numSequenceTxs := 10000
 
 	// Simulate the peer table after it's all done.
-	// simulate(40, 50, 25 * time.Second)
+	// simulate(5, 10000, 10 * time.Second)
 	simulate(16, 10000, 20 * time.Second)
+	// simulate(16, 5, 5 * time.Second)
 }
 
 func min(a, b int) int {
@@ -65,7 +67,7 @@ func waitForPeeringsConnected(host host.Host, num int) (chan bool) {
 func simulate(numReplicas, numSequenceTxs int, waitDuration time.Duration) {
 	// Create primary node.
 	// file::memory:?cache=shared
-	primary := sequencer.NewSequencerNode("file:swag?cache=shared", "49000", "49001", sequencer.PrimaryMode, "0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484", "", "3fd7f88cb790c6a8b54d4e1aaebba6775f427bb8fa2276e933b7c3440f164caa")
+	// primary := sequencer.NewSequencerNode("file:swag?cache=shared", "49000", "49001", sequencer.PrimaryMode, "0x08011240e6d9a1faa2fbf1e669169b8813e4439c5d304f82bccdf6a8da30d7e1679edd6e9ca03937ad7b1c86347c24db827cfd0da2743e4946d7437ed6e1571560cad484", "", "3fd7f88cb790c6a8b54d4e1aaebba6775f427bb8fa2276e933b7c3440f164caa")
 
 	// Create 5 replicas.
 	replicas := make([]*sequencer.SequencerNode, numReplicas)
@@ -81,8 +83,8 @@ func simulate(numReplicas, numSequenceTxs int, waitDuration time.Duration) {
 	}
 
 	// Start them up.
-	go primary.Start()
-	defer primary.Close()
+	// go primary.Start()
+	// defer primary.Close()
 
 	for _, replica := range replicas {
 		go replica.Start()
@@ -91,14 +93,16 @@ func simulate(numReplicas, numSequenceTxs int, waitDuration time.Duration) {
 
 	// Wait until they're connected for the test.
 	// Primary - wait for num(replicas) / 2
-	<-waitForPeeringsConnected(primary.P2P.Host, min(5, 24))
+	// <-waitForPeeringsConnected(primary.P2P.Host, min(numReplicas, 24))
+	// <-waitForPeeringsConnected(primary.P2P.Host, min(5, 24))
 	
 	// Replicas - wait for at least 1 node
 	var wg sync.WaitGroup
 	for _, replica := range replicas {
 		wg.Add(1)
 		go func(replica *sequencer.SequencerNode){
-			<-waitForPeeringsConnected(replica.P2P.Host, min(8, 24))
+			<-waitForPeeringsConnected(replica.P2P.Host, min(1, 24))
+			// <-waitForPeeringsConnected(replica.P2P.Host, min(8, 24))
 			wg.Done()
 		}(replica)
 	}
@@ -115,9 +119,20 @@ func simulate(numReplicas, numSequenceTxs int, waitDuration time.Duration) {
 	}
 	batchSize := 250
 
+
+	rpcclient, err := rpc.Dial("http://localhost:49000")
+	if err != nil {
+		panic(fmt.Errorf("can't setup rpc: %s", err))
+	}
+
+
 	for i := 0; i < batchSize; i += batchSize {
 		for _, msg := range msgs {
-			_, err := primary.Seq.Sequence(msg.ToHex())
+			// _, err := primary.Seq.Sequence(msg.ToHex())
+
+			var res interface{}
+			err = rpcclient.Call(res, "sequencer_sequence", msg.ToHex())
+
 			if err != nil {
 				log.Fatal(err)
 			}

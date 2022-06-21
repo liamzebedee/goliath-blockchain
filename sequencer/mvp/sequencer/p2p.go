@@ -98,12 +98,6 @@ func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers Addr
 	// 	// pubsub.WithFloodPublish(true),
 	// )
 
-	// Much simpler model.
-	// It's a federated hub-n-spoke network.
-	// The sequencer streams txs to 16 replicas.
-	// Which stream to 16 more replicas.
-	// 16*16=256 replicas
-
 	pubsub, err := pubsub.NewFloodSub(
 		ctx,
 		host,
@@ -144,8 +138,8 @@ func NewP2PNode(multiaddr string, privateKey crypto.PrivKey, bootstrapPeers Addr
 func (n *P2PNode) Start() {
 	fmt.Printf("P2P listening on %s\n", n.Host.Addrs()[0])
 
-	go n.BroadcastPresenceRoutine()
-	go n.ListenForNewPeers()
+	// go n.BroadcastPresenceRoutine()
+	// go n.ListenForNewPeers()
 }
 
 // discoveryNotifee gets notified when we find a new peer
@@ -182,7 +176,7 @@ func (n *P2PNode) GossipNewBlock(block *messages.Block) {
 
 func (n *P2PNode) ListenForNewBlocks(handler func(block *messages.Block)) {
 	sub, err := n.newBlocks.Subscribe(
-		pubsub.WithBufferSize(30000),
+		pubsub.WithBufferSize(10000),
 	)
 	if err != nil {
 		panic(err)
@@ -198,7 +192,7 @@ func (n *P2PNode) ListenForNewBlocks(handler func(block *messages.Block)) {
 		block := &messages.Block{}
 		proto.Unmarshal(msg.Data, block)
 
-		fmt.Printf("pubsub - new block: %s\n", block.PrettyHash())
+		fmt.Printf("pubsub - new block: %s\n", block.PrettyString())
 		handler(block)
 	}
 }

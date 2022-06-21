@@ -120,17 +120,18 @@ func (block *Block) Signed(signer utils.Signer) (*Block) {
 }
 
 func (block *Block) PrettyString() string {
-	var bodyStr string = ""
-	if body := block.GetBody(); body != nil {
-		bodyStr = hexutil.Encode(body.SigHash())
-	}
+	// var bodyStr string = ""
+	// if body := block.GetBody(); body != nil {
+	// 	bodyStr = hexutil.Encode(body.SigHash())
+	// }
 
 	return fmt.Sprintf(
-		"block [height=%d hash=%s prev=%s seq_tx=%s]", 
+		"block [height=%d hash=%s]", 
+		// "block [height=%d hash=%s prev=%s seq_tx=%s]", 
 		block.Height,
 		hexutil.Encode(block.SigHash()),
-		hexutil.Encode(block.PrevBlockHash),
-		bodyStr,	
+		// hexutil.Encode(block.PrevBlockHash),
+		// bodyStr,	
 	)
 }
 

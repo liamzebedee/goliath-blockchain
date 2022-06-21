@@ -29,11 +29,10 @@ type SequencerCore struct {
 	db *sql.DB
 	
 	sequenceTxs chan *sequenceWork
-	
-	blockIngestion chan *messages.Block
+	processBlock chan *messages.Block
 
 	outOfOrderBlockChan chan *messages.Block
-	outOfOrderBlocks map[int64]*messages.Block
+	unprocessedBlockAtHeight map[int64]*messages.Block
 	LastBlock *messages.Block
 	TotalSeen int
 	blockListeners []*OnBlockEventListener
@@ -77,13 +76,14 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 	// }
 
 	s := &SequencerCore{
-		blockIngestion: make(chan *messages.Block, 5),
-		sequenceTxs: make(chan *sequenceWork, 5),
+		// blockIngestion: make(chan *messages.Block),
+		processBlock: make(chan *messages.Block),
+		sequenceTxs: make(chan *sequenceWork),
+
 		blockListeners: make([]*OnBlockEventListener, 0),
-		outOfOrderBlockChan: make(chan *messages.Block, 20),
 		db: db,
 		// outOfOrderBlocks: make([]*messages.Block, 100),
-		outOfOrderBlocks: make(map[int64]*messages.Block),
+		unprocessedBlockAtHeight: make(map[int64]*messages.Block),
 	}
 
 	// Insert genesis block.
@@ -98,11 +98,29 @@ func NewSequencerCore(db *sql.DB, operatorPrivateKey string) (*SequencerCore) {
 		fmt.Printf("operator pubkey: %s\n", s.signer.String())
 	}
 
-	go s.sequenceRoutine()
-	go s.ingestBlockRoutine()
-	go s.checkOutOfOrderBlocks()
-
+	go s.loop()
 	return s
+}
+
+
+func (s *SequencerCore) loop() {
+	for {
+		// Process blocks serially.
+		select {
+		case block := <-s.processBlock:
+			// Check since last time if we have satisfied dependencies for other blocks.
+			s.checkOutOfOrderBlocks()
+
+			// Process the block.
+			err := s.doProcessBlock(block)
+			if err != nil {
+				fmt.Println("error while processing block", fmt.Sprint(block.Height), ":", err)
+				continue
+			}
+		case work := <-s.sequenceTxs:
+			s.doSequenceWork(work)
+		}
+	}
 }
 
 type sequenceWork struct {
@@ -111,161 +129,160 @@ type sequenceWork struct {
 
 func (s *SequencerCore) WaitedBlocks(max int64) (int64) {
 	for height := s.LastBlock.Height; height < max; height++ {
-		b := s.outOfOrderBlocks[height]
+		b := s.unprocessedBlockAtHeight[height]
 		if b != nil {
 			return height
 		}
-		// s.outOfOrderBlocks[block.Height - 1] = block
 	}
 	return -1
 }
 
-func (s *SequencerCore) checkOutOfOrderBlocks() {
-	// Every 10ms, check blocks we've received out-of-order for future block heights.
+func (s *SequencerCore) checkOutOfOrderBlocks() (error) {
 	// If we've processed the parent block, we process the child.
 	for {
-		select {
-		case block := <-s.outOfOrderBlockChan:
-			// Maps the out-of-order block to the block height which satisfies it.
-			s.outOfOrderBlocks[block.Height - 1] = block
+		block_satisfied := s.unprocessedBlockAtHeight[s.LastBlock.Height + 1]
+
+		if block_satisfied == nil {
 			break
-		default:
-			block := s.outOfOrderBlocks[s.LastBlock.Height]
-			delete(s.outOfOrderBlocks, s.LastBlock.Height)
-
-			if block != nil {
-				s.blockIngestion <- block
-			}
-
-			time.Sleep(10 * time.Millisecond)
 		}
+
+		err := s.doProcessBlock(block_satisfied)
+		if err != nil {
+			return fmt.Errorf("error processing an out of order block: %s", err)
+		}
+
+		delete(s.unprocessedBlockAtHeight, s.LastBlock.Height)
 	}
+	
+	return nil
 }
 
-func (s *SequencerCore) sequenceRoutine() (error) {
-	for {
-		// Process sequence txs serially.
-		work := <-s.sequenceTxs
-		sequenceTx := work.msg
+func (s *SequencerCore) doSequenceWork(work *sequenceWork) (error) {
+	// Process sequence txs serially.
+	sequenceTx := work.msg
 
-		sequenceBuf, err := proto.Marshal(sequenceTx)
-		if err != nil {
-			return err
-		}
-
-		// Insert sequence into storage, generating a sequence number.
-		tx, err := s.db.Begin()
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		_, err = tx.Exec(
-			"INSERT INTO sequence values (?, ?, ?)",
-			nil,
-			sequenceBuf,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		// Create a block, chain and sign it.
-		block := messages.ConstructBlock(sequenceTx)
-		block.Height = s.LastBlock.Height + 1
-		block.PrevBlockHash = s.LastBlock.SigHash()
-		block = block.Signed(s.signer)
-		
-		// Insert into database.
-		blockBuf, err := proto.Marshal(block)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Exec(
-			"INSERT INTO blocks values (?, ?, ?)",
-			nil,
-			blockBuf,
-			block.SigHash(),
-		)
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		// Commit the new state.
-		err = tx.Commit()
-		if err != nil {
-			return err
-		}
-		
-		s.LastBlock = block
-
-		fmt.Println("chained a block:", block.PrettyString())
-
-		// Notify the block listeners.
-		for _, list := range s.blockListeners {
-			go list.handler(block)
-		}
+	sequenceBuf, err := proto.Marshal(sequenceTx)
+	if err != nil {
+		return err
 	}
+
+	// Insert sequence into storage, generating a sequence number.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO sequence values (?, ?, ?)",
+		nil,
+		sequenceBuf,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	// Create a block, chain and sign it.
+	block := messages.ConstructBlock(sequenceTx)
+	block.Height = s.LastBlock.Height + 1
+	block.PrevBlockHash = s.LastBlock.SigHash()
+	block = block.Signed(s.signer)
+	
+	// Insert into database.
+	blockBuf, err := proto.Marshal(block)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO blocks values (?, ?, ?)",
+		nil,
+		blockBuf,
+		block.SigHash(),
+	)
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	// Commit the new state.
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	
+	s.LastBlock = block
+
+	fmt.Println("chained a block:", block.PrettyString())
+
+	// Notify the block listeners.
+	for _, list := range s.blockListeners {
+		go list.handler(block)
+	}
+
+	return nil
 }
 
-func (s *SequencerCore) ingestBlockRoutine() (error) {
-	for {
-		// Process blocks serially.
-		block := <-s.blockIngestion
-
-		sequenceBuf, err := proto.Marshal(block.Body)
-		if err != nil {
-			return err
-		}
-
-		// Insert sequence into storage, generating a sequence number.
-		tx, err := s.db.Begin()
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		_, err = tx.Exec(
-			"INSERT INTO sequence values (?, ?, ?)",
-			nil,
-			sequenceBuf,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		// Insert into database.
-		blockBuf, err := proto.Marshal(block)
-		if err != nil {
-			return err
-		}
-
-		_, err = tx.Exec(
-			"INSERT INTO blocks values (?, ?, ?)",
-			nil,
-			blockBuf,
-			block.SigHash(),
-		)
-		if err != nil {
-			return fmt.Errorf("error writing tx to db: %s", err)
-		}
-
-		// Commit the new state.
-		err = tx.Commit()
-		if err != nil {
-			return err
-		}
-
-		s.LastBlock = block
-
-		fmt.Println("ingested a block:", block.PrettyString())
+func (s *SequencerCore) ingestBlock(block *messages.Block) (error) {
+	sequenceBuf, err := proto.Marshal(block.Body)
+	if err != nil {
+		return err
 	}
+
+	// Insert sequence into storage, generating a sequence number.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO sequence values (?, ?, ?)",
+		nil,
+		sequenceBuf,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	// Insert into database.
+	blockBuf, err := proto.Marshal(block)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO blocks values (?, ?, ?)",
+		nil,
+		blockBuf,
+		block.SigHash(),
+	)
+	if err != nil {
+		return fmt.Errorf("error writing tx to db: %s", err)
+	}
+
+	// Commit the new state.
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	s.LastBlock = block
+	fmt.Println("ingested a block:", block.PrettyString())
+	fmt.Printf("new chain height %d\n", block.Height)
+
+	return nil
 }
 
 // Processes a block from the sequencer primary. Used by replicas.
 // NOTE: This method is NOT threadsafe with the `Sequence` method.
 func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
-	fmt.Printf("processing block: %s\n", block.PrettyString())
+	s.processBlock <- block
+	return nil
+}
+
+func (s *SequencerCore) doProcessBlock(block *messages.Block) (error) {
+	fmt.Println("process block", fmt.Sprint(block.Height))
+	// fmt.Printf("processing block: %s\n", block.PrettyString())
 
 	// 
 	// 1. Verify block.
@@ -306,14 +323,20 @@ func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 		return nil
 	}
 	s.TotalSeen += 1
-	// TODO memoize sighash here.
-	if !bytes.Equal(block.PrevBlockHash, s.LastBlock.SigHash()) {
-		// Block is out-of-order. 
+
+	// Block was received out-of-order. We can process it later.
+	if s.LastBlock.Height + 1 < block.Height {
 		// Store it for later.
 		fmt.Println("got block out-of-order:", block.PrettyString())
-		s.outOfOrderBlockChan <- block
-		// s.outOfOrderBlocks = append(s.outOfOrderBlocks, block)
+
+		// Maps the out-of-order block to the block height which satisfies it.
+		s.unprocessedBlockAtHeight[block.Height] = block
 		return nil
+	}
+
+	// Verify hash chain.
+	if !bytes.Equal(block.PrevBlockHash, s.LastBlock.SigHash()) {
+		return fmt.Errorf("block prevhash is not lastblock prevhash")
 	}
 
 	body := block.GetBody()
@@ -331,7 +354,11 @@ func (s *SequencerCore) ProcessBlock(block *messages.Block) (error) {
 	// 
 	// 3. Update sequencer state.
 	// 
-	s.blockIngestion <- block
+
+	err = s.ingestBlock(block)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

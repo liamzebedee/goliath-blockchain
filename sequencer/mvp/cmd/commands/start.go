@@ -46,6 +46,7 @@ func (cmd *StartCmd) SetFlags(f *flag.FlagSet) {
 func (cmd *StartCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	// privateKey := parsePrivateKey()
 	privateKey := os.Getenv("PRIVATE_KEY")
+	operatorPrivateKey := os.Getenv("OPERATOR_PRIVATE_KEY")
 
 	var mode sequencer.SequencerMode
 	switch *cmd.mode_flag {
@@ -60,6 +61,9 @@ func (cmd *StartCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{
 	if privateKey == "" && mode == sequencer.PrimaryMode {
 		panic("PRIVATE_KEY environment variable is empty!")
 	}
+	if operatorPrivateKey == "" && mode == sequencer.PrimaryMode {
+		panic("OPERATOR_PRIVATE_KEY environment variable is empty!")
+	}
 
 	fmt.Println("Goliath Sequencer")
 	fmt.Println("Mode:", *cmd.mode_flag)
@@ -72,7 +76,7 @@ func (cmd *StartCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{
 		mode,
 		privateKey,
 		*cmd.peers,
-		"",
+		operatorPrivateKey,
 	)
 
 	// Handle shutdowns.
@@ -110,6 +114,9 @@ func parsePrivateKey() *ecdsa.PrivateKey {
 }
 
 func getDatabasePathWithOptions(filepath string) string {
+	if filepath == "" {
+		return "file::memory:?cache=shared"
+	}
 	return fmt.Sprintf("file:%s?cache=shared", filepath)
 }
 
