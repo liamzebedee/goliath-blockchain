@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/utils"
 	"github.com/libp2p/go-libp2p-core/host"
 	_ "github.com/mattn/go-sqlite3"
 )

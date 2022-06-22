@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/utils"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -475,7 +475,7 @@ func (s *SequencerCore) Get(from, to uint64) (*messages.GetTransactions, error) 
 		to,
 	)
 	defer res.Close()
-	
+
 	if err != nil {
 		return reply, fmt.Errorf("error fetching from db: %s", err)
 	}
