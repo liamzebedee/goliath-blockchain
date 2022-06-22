@@ -287,6 +287,116 @@ func (x *UNIXExpiryCondition) GetTime() uint64 {
 	return 0
 }
 
+type GetTransactions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	From uint64        `protobuf:"varint,1,opt,name=from,proto3" json:"from,omitempty"`
+	To   uint64        `protobuf:"varint,2,opt,name=to,proto3" json:"to,omitempty"`
+	Txs  []*SequenceTx `protobuf:"bytes,3,rep,name=txs,proto3" json:"txs,omitempty"`
+}
+
+func (x *GetTransactions) Reset() {
+	*x = GetTransactions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sequencer_messages_defs_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetTransactions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTransactions) ProtoMessage() {}
+
+func (x *GetTransactions) ProtoReflect() protoreflect.Message {
+	mi := &file_sequencer_messages_defs_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTransactions.ProtoReflect.Descriptor instead.
+func (*GetTransactions) Descriptor() ([]byte, []int) {
+	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetTransactions) GetFrom() uint64 {
+	if x != nil {
+		return x.From
+	}
+	return 0
+}
+
+func (x *GetTransactions) GetTo() uint64 {
+	if x != nil {
+		return x.To
+	}
+	return 0
+}
+
+func (x *GetTransactions) GetTxs() []*SequenceTx {
+	if x != nil {
+		return x.Txs
+	}
+	return nil
+}
+
+type GetSequencerInfo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Count uint64 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+}
+
+func (x *GetSequencerInfo) Reset() {
+	*x = GetSequencerInfo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_sequencer_messages_defs_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetSequencerInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSequencerInfo) ProtoMessage() {}
+
+func (x *GetSequencerInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_sequencer_messages_defs_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSequencerInfo.ProtoReflect.Descriptor instead.
+func (*GetSequencerInfo) Descriptor() ([]byte, []int) {
+	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetSequencerInfo) GetCount() uint64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
 type SequencerPrimaryAdvertisement struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -298,7 +408,7 @@ type SequencerPrimaryAdvertisement struct {
 func (x *SequencerPrimaryAdvertisement) Reset() {
 	*x = SequencerPrimaryAdvertisement{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sequencer_messages_defs_proto_msgTypes[4]
+		mi := &file_sequencer_messages_defs_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -311,7 +421,7 @@ func (x *SequencerPrimaryAdvertisement) String() string {
 func (*SequencerPrimaryAdvertisement) ProtoMessage() {}
 
 func (x *SequencerPrimaryAdvertisement) ProtoReflect() protoreflect.Message {
-	mi := &file_sequencer_messages_defs_proto_msgTypes[4]
+	mi := &file_sequencer_messages_defs_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +434,7 @@ func (x *SequencerPrimaryAdvertisement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SequencerPrimaryAdvertisement.ProtoReflect.Descriptor instead.
 func (*SequencerPrimaryAdvertisement) Descriptor() ([]byte, []int) {
-	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{4}
+	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SequencerPrimaryAdvertisement) GetMultiaddress() []byte {
@@ -345,7 +455,7 @@ type P2PMessage struct {
 func (x *P2PMessage) Reset() {
 	*x = P2PMessage{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_sequencer_messages_defs_proto_msgTypes[5]
+		mi := &file_sequencer_messages_defs_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -358,7 +468,7 @@ func (x *P2PMessage) String() string {
 func (*P2PMessage) ProtoMessage() {}
 
 func (x *P2PMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_sequencer_messages_defs_proto_msgTypes[5]
+	mi := &file_sequencer_messages_defs_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -371,7 +481,7 @@ func (x *P2PMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use P2PMessage.ProtoReflect.Descriptor instead.
 func (*P2PMessage) Descriptor() ([]byte, []int) {
-	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{5}
+	return file_sequencer_messages_defs_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *P2PMessage) GetBlock() *Block {
@@ -409,7 +519,15 @@ var file_sequencer_messages_defs_proto_rawDesc = []byte{
 	0x6e, 0x69, 0x78, 0x42, 0x0b, 0x0a, 0x09, 0x63, 0x6f, 0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e,
 	0x22, 0x29, 0x0a, 0x13, 0x55, 0x4e, 0x49, 0x58, 0x45, 0x78, 0x70, 0x69, 0x72, 0x79, 0x43, 0x6f,
 	0x6e, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x43, 0x0a, 0x1d, 0x53,
+	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x54, 0x0a, 0x0f, 0x47,
+	0x65, 0x74, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x12,
+	0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x66, 0x72,
+	0x6f, 0x6d, 0x12, 0x0e, 0x0a, 0x02, 0x74, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x02,
+	0x74, 0x6f, 0x12, 0x1d, 0x0a, 0x03, 0x74, 0x78, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x0b, 0x2e, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x54, 0x78, 0x52, 0x03, 0x74, 0x78,
+	0x73, 0x22, 0x28, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65,
+	0x72, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0x43, 0x0a, 0x1d, 0x53,
 	0x65, 0x71, 0x75, 0x65, 0x6e, 0x63, 0x65, 0x72, 0x50, 0x72, 0x69, 0x6d, 0x61, 0x72, 0x79, 0x41,
 	0x64, 0x76, 0x65, 0x72, 0x74, 0x69, 0x73, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x22, 0x0a, 0x0c,
 	0x6d, 0x75, 0x6c, 0x74, 0x69, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01,
@@ -436,25 +554,28 @@ func file_sequencer_messages_defs_proto_rawDescGZIP() []byte {
 	return file_sequencer_messages_defs_proto_rawDescData
 }
 
-var file_sequencer_messages_defs_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_sequencer_messages_defs_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_sequencer_messages_defs_proto_goTypes = []interface{}{
 	(*Block)(nil),                         // 0: Block
 	(*SequenceTx)(nil),                    // 1: SequenceTx
 	(*ExpiryCondition)(nil),               // 2: ExpiryCondition
 	(*UNIXExpiryCondition)(nil),           // 3: UNIXExpiryCondition
-	(*SequencerPrimaryAdvertisement)(nil), // 4: SequencerPrimaryAdvertisement
-	(*P2PMessage)(nil),                    // 5: P2PMessage
+	(*GetTransactions)(nil),               // 4: GetTransactions
+	(*GetSequencerInfo)(nil),              // 5: GetSequencerInfo
+	(*SequencerPrimaryAdvertisement)(nil), // 6: SequencerPrimaryAdvertisement
+	(*P2PMessage)(nil),                    // 7: P2PMessage
 }
 var file_sequencer_messages_defs_proto_depIdxs = []int32{
 	1, // 0: Block.body:type_name -> SequenceTx
 	2, // 1: SequenceTx.expires:type_name -> ExpiryCondition
 	3, // 2: ExpiryCondition.unix:type_name -> UNIXExpiryCondition
-	0, // 3: P2PMessage.block:type_name -> Block
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	1, // 3: GetTransactions.txs:type_name -> SequenceTx
+	0, // 4: P2PMessage.block:type_name -> Block
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_sequencer_messages_defs_proto_init() }
@@ -512,7 +633,7 @@ func file_sequencer_messages_defs_proto_init() {
 			}
 		}
 		file_sequencer_messages_defs_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SequencerPrimaryAdvertisement); i {
+			switch v := v.(*GetTransactions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -524,6 +645,30 @@ func file_sequencer_messages_defs_proto_init() {
 			}
 		}
 		file_sequencer_messages_defs_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetSequencerInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sequencer_messages_defs_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SequencerPrimaryAdvertisement); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_sequencer_messages_defs_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*P2PMessage); i {
 			case 0:
 				return &v.state
@@ -545,7 +690,7 @@ func file_sequencer_messages_defs_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_sequencer_messages_defs_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

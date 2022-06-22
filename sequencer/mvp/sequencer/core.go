@@ -459,9 +459,54 @@ func (s *SequencerCore) Sequence(msgData string) (int64, error) {
 	return 0, nil
 }
 
+
+
 // Returns the transactions between index `from` and `to`.
-func (s *SequencerCore) Get(from, to uint64) (int, error) {
-	return 1, nil
+func (s *SequencerCore) Get(from, to uint64) (*messages.GetTransactions, error) {
+	reply := &messages.GetTransactions{
+		From: from,
+		To: to,
+		Txs: []*messages.SequenceTx{},
+	}
+
+	res, err := s.db.Query(
+		`SELECT msg FROM sequence WHERE num >= ? AND num <= ?`, 
+		from, 
+		to,
+	)
+	defer res.Close()
+	
+	if err != nil {
+		return reply, fmt.Errorf("error fetching from db: %s", err)
+	}
+
+	// fmt.Println(res.Columns())
+
+	// var hash []byte
+
+	for res.Next() {
+		tx := &messages.SequenceTx{}
+		var (
+			// num int64
+			buf []byte
+		)
+
+		err := res.Scan(&buf)
+		// err := res.Scan(&num, &buf, &hash)
+		if err != nil {
+			return reply, fmt.Errorf("error fetching from db: %s", err)
+		}
+
+		// fmt.Printf("%d ", len(buf))
+		err = proto.Unmarshal(buf, tx)
+		if err != nil {
+			return reply, fmt.Errorf("error decoding db tx: %s", err)
+		}
+
+		reply.Txs = append(reply.Txs, tx)
+	}
+
+	return reply, nil
 }
 
 // Returns the blocks between index `from` and `to`.
@@ -477,13 +522,29 @@ type SequencerInfo struct {
 // Get the sequencer info.
 // - total number of sequenced txs.
 // - latest received tx time.
-func (s *SequencerCore) Info() (SequencerInfo, error) {
-	info := SequencerInfo{
-		Total: 0,
-		LastSequenceTime: 0,
+func (s *SequencerCore) Info() (*messages.GetSequencerInfo, error) {
+	reply := &messages.GetSequencerInfo{
+		Count: 0,
 	}
 	
-	return info, nil
+	res, err := s.db.Query("SELECT COUNT(*) FROM sequence")
+	if err != nil {
+		return reply, fmt.Errorf("error fetching from db: %s", err)
+	}
+
+
+	for res.Next() {
+		err := res.Scan(&reply.Count)
+		if err != nil {
+			return reply, fmt.Errorf("error fetching from db: %s", err)
+		}
+	}
+
+	if err != nil {
+		return reply, fmt.Errorf("error fetching from db: %s", err)
+	}
+
+	return reply, nil
 }
 
 func (s *SequencerCore) OnNewBlock(onBlock onBlockFn) () {

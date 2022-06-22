@@ -32,6 +32,15 @@ message UNIXExpiryCondition {
   uint64 time = 1;
 }
 
+message GetTransactions {
+  uint64 from = 1;
+  uint64 to = 2;
+  repeated SequenceTx txs = 3;
+}
+
+message GetSequencerInfo {
+  uint64 count = 1;
+}
 
 
 message SequencerPrimaryAdvertisement {
