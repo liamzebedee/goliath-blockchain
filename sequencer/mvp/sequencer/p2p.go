@@ -11,7 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/golang/protobuf/proto"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pHost "github.com/libp2p/go-libp2p-core/host"

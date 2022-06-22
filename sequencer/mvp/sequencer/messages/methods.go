@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/utils"
 )
 
 func (msg *SequenceTx) ToHex() (string) {

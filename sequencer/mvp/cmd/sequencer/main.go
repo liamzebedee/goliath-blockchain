@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/google/subcommands"
-	"github.com/liamzebedee/goliath/mvp/sequencer/cmd/commands"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/cmd/commands"
 )
 
 func main() {

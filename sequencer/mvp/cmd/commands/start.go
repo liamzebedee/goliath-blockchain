@@ -12,7 +12,7 @@ import (
 	"os"
 
 	"github.com/google/subcommands"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	_ "github.com/mattn/go-sqlite3"

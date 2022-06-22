@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 

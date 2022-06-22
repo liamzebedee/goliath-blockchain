@@ -1,4 +1,4 @@
-module github.com/liamzebedee/goliath/mvp/sequencer
+module github.com/liamzebedee/goliath-blockchain/sequencer/mvp
 
 go 1.18
 

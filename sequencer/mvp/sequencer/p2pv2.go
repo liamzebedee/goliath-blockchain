@@ -12,7 +12,7 @@ import (
 	// discovery "github.com/libp2p/go-libp2p-discovery"
 	// dht "github.com/libp2p/go-libp2p-kad-dht"
 
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pHost "github.com/libp2p/go-libp2p-core/host"

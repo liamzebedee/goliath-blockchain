@@ -8,8 +8,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethCrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/subcommands"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/utils"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 

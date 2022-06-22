@@ -8,9 +8,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/messages"
-	"github.com/liamzebedee/goliath/mvp/sequencer/sequencer/utils"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/messages"
+	"github.com/liamzebedee/goliath-blockchain/sequencer/mvp/sequencer/utils"
 	"github.com/stretchr/testify/assert"
 )
 
