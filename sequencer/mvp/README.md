@@ -35,6 +35,10 @@ PRIVATE_KEY=0x0801124098bba74fbc32342624d74e8e523644be41d1e745b21af54933735ea6f0
 
 # Run a sequencer replica.
 PRIVATE_KEY="" ./cmd/sequencer/sequencer start -dbpath tmp/db2 -mode replica -peers "/ip4/192.168.1.189/tcp/24445/p2p/12D3KooWJPxP7QYvfkDoHRXFirAixtvmy3dMjy1eszPza7oFqdgt" -rpcport 25445 -p2pport 25446
+
+# Call the sequencer RPC.
+curl -X POST http://localhost:49000/ --data '{"jsonrpc":"2.0","id":null,"method":"sequencer_get","params":[1,16]}' -H "Content-Type: application/json"
+curl -X POST http://localhost:49000/ --data '{"jsonrpc":"2.0","id":null,"method":"sequencer_info","params":[]}' -H "Content-Type: application/json"
 ```
 
 ## Development.
