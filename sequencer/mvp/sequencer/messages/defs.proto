@@ -16,9 +16,12 @@ message Block {
 
 message SequenceTx {
   bytes from = 2;
-  bytes data = 3;
-  bytes sig = 4;
-  bytes nonce = 5;
+  bytes to = 3;
+  bytes data = 4;
+  bytes sig = 5;
+  bytes nonce = 6;
+  bytes state_reads = 7;
+  bytes state_writes = 8;
   repeated ExpiryCondition expires = 20;
 }
 

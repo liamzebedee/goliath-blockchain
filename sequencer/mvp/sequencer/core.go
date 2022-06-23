@@ -371,6 +371,11 @@ func (s *SequencerCore) verifySequenceMessage(msg *messages.SequenceTx, checkUni
 	if len(msg.From) == 0 || msg.From == nil {
 		return fmt.Errorf("message is malformed")
 	}
+
+	// TODO: process From and StateReads fields.
+	// if len(msg.To) == 0 || msg.To == nil {
+	// 	return fmt.Errorf("message is malformed")
+	// }
 	
 	// Verify signature.
 	digestHash := msg.SigHash()
