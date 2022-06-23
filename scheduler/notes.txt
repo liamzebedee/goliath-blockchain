@@ -1,0 +1,54 @@
+// Generate access list.
+// Use access list to co-operatively schedule.
+
+// We can just write the list to disk.
+// And then read from it in the RPC call. 
+// and then use that to parallelise at the scheduler layer.
+
+// How can we do this more simply? Dumber? Easier?
+
+
+// Dumbest possible thing:
+// - write the list of accessed leaves after the eth_call
+// - scheduler reads this from tx in sequencer, and outputs an execution ordering (we just need 2x speedup)
+// - then it executes on that ordering
+// - executer will error if the access lists do not match
+// - then we benchmark it
+
+
+
+
+// Currently we have txs taking 12ms to evaluate.
+// This is about 83tps.
+// 
+// What do I really want? 
+// To push the bounds of architectures.
+// Current state of the art:
+// costs for storage are very high
+// let's bring them down a tonne.
+// how? make sure that nodes don't have to replicate the entire state.
+// although the problem with my architecture is that it's the same cost
+// only that we don't transfer the state between participants.
+// why? 
+// because we 
+// 
+// What's the deal? 
+// 
+// parallelisation 
+// what if we have DAI for example
+// we only block on our balances when we transfer
+// ok what about sUSD?
+// every tx is essentially serially pipelined in sUSD
+// due to the debt cache update
+// how can we improve this? 
+// well, it just means we'd be processing those txs serially
+// otherwise, there's not much difference
+// 
+// 
+// ok so we have two paths:
+// - evm
+// - cairo
+// 
+// 
+// Okay so this works.
+// Let's schedule in parallel.

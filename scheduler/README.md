@@ -1,6 +1,14 @@
 Scheduler-executer
 ==================
 
+## Usage.
+
+EVM execution using SputnikVM is roughly 8ms for a tx.
+
+```sh
+go run cmd/executer/main.go
+```
+
 ## How does it work?
 
 This fetches every block from the Tendermint chain, queries the batch of sequenced transactions for that block, and then executes them.
