@@ -71,12 +71,19 @@ function executeVM(opts) {
     let args = []
     args.push(`--db-path ./chain.sqlite`)
     args.push(`--data ${sanitizedInput}`)
-    args.push(`--output-file ${tempOutputFile}`)
+    args.push(`--output-file '${tempOutputFile}'`)
+    args.push(`--state-leaves-file 'state-leaves.${tempOutputFile}'`)
     if(write) args.push('--write')
 
     cmd += ' ' + args.join(' ')
     console.log(cmd)
-    execSync(cmd, { cwd: resolve(SPUTNIK_EXECUTOR_PATH) })
+    let output = execSync(
+        cmd,
+        { 
+            cwd: resolve(SPUTNIK_EXECUTOR_PATH),
+            stdio: 'inherit'
+        }
+    )
     
     // TODO: HACK HACK HACK HACK HACK
     let outputBuf = '0x'
